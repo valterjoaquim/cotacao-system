@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>📤 Partilhar Cotação</h1>
+
+<br>
+
+<div class="card">
+
+    <p>Escolha uma forma de partilhar a cotação:</p>
+
+    <br>
+
+    <a class="btn" href="{{ whatsapp_url }}" target="_blank">
+        📱 Enviar via WhatsApp
+    </a>
+
+    <br><br>
+
+    <a class="btn" href="{{ email_url }}">
+        📧 Enviar via Email
+    </a>
+
+    <br><br>
+
+    <a class="btn red" href="{{ pdf_url }}" download>
+        📄 Baixar PDF para enviar via Bluetooth
+    </a>
+
+    <br><br>
+
+    <small>
+        Para Bluetooth: baixe o PDF, clique com botão direito no ficheiro e escolha
+        “Enviar para → Dispositivo Bluetooth”.
+    </small>
+
+</div>
+
+{% endblock %}

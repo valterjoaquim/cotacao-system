@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d47a1, #1565c0);
+        color: white;
+        padding: 28px;
+        border-radius: 16px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 20px rgba(13, 71, 161, 0.18);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+    }
+
+    .page-header p {
+        margin: 8px 0 0;
+        opacity: 0.9;
+    }
+
+    .form-card,
+    .table-card {
+        background: white;
+        padding: 28px;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        margin-bottom: 25px;
+    }
+
+    .section-title {
+        color: #0d47a1;
+        margin-top: 0;
+        border-left: 5px solid #d32f2f;
+        padding-left: 12px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 7px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 13px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background: #fafafa;
+        font-size: 14px;
+    }
+
+    .form-group input:focus {
+        border-color: #0d47a1;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(13, 71, 161, 0.10);
+    }
+
+    .actions {
+        margin-top: 22px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .func-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .func-table th {
+        background: #0d47a1;
+        color: white;
+        padding: 14px 12px;
+        text-align: left;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .func-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .func-table tr:hover {
+        background: #f5f8ff;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-green {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-gray {
+        background: #eeeeee;
+        color: #555;
+    }
+
+    .salary {
+        color: #d32f2f;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 35px;
+        color: #777;
+    }
+
+    .btn-small {
+        padding: 8px 11px;
+        font-size: 13px;
+    }
+
+    .btn-warning {
+        background: #f9a825;
+    }
+
+    @media (max-width: 800px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1>👥 Funcionários</h1>
+    <p>Cadastre, consulte, edite e desative funcionários usados no módulo de folha salarial.</p>
+</div>
+
+<div class="form-card">
+
+    <h3 class="section-title">➕ Cadastrar Funcionário</h3>
+
+    <form method="POST">
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Nome do Funcionário</label>
+                <input type="text" name="nome" required placeholder="Ex: João Manuel">
+            </div>
+
+            <div class="form-group">
+                <label>Cargo</label>
+                <input type="text" name="cargo" placeholder="Ex: Técnico, Motorista, Auxiliar...">
+            </div>
+
+            <div class="form-group">
+                <label>Salário por Hora</label>
+                <input type="number" name="salario_hora" step="0.01" required placeholder="Ex: 150.00">
+            </div>
+
+            <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" name="telefone" placeholder="Ex: 84 000 0000">
+            </div>
+
+        </div>
+
+        <div class="actions">
+            <button class="btn">
+                💾 Salvar Funcionário
+            </button>
+
+            <a href="/folhas" class="btn red">
+                Ver Folhas Salariais
+            </a>
+        </div>
+
+    </form>
+
+</div>
+
+<div class="table-card">
+
+    <h3 class="section-title">📋 Lista de Funcionários</h3>
+
+    <div class="table-wrapper">
+
+        <table class="func-table">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Cargo</th>
+                    <th>Salário/Hora</th>
+                    <th>Telefone</th>
+                    <th>Estado</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for f in funcionarios %}
+                <tr>
+                    <td>#{{ f[0] }}</td>
+                    <td><strong>{{ f[1] }}</strong></td>
+                    <td>{{ f[2] }}</td>
+                    <td class="salary">{{ "%.2f"|format(f[3] or 0) }} MT</td>
+                    <td>{{ f[4] }}</td>
+                    <td>
+                        {% if f[5] == "Ativo" %}
+                            <span class="badge badge-green">{{ f[5] }}</span>
+                        {% else %}
+                            <span class="badge badge-gray">{{ f[5] }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="row-actions">
+                            <a class="btn btn-small btn-warning" href="/editar-funcionario/{{ f[0] }}">
+                                ✏️ Editar
+                            </a>
+
+                            <a class="btn red btn-small"
+                               href="/apagar-funcionario/{{ f[0] }}"
+                               onclick="return confirm('Deseja desativar este funcionário? O histórico salarial será mantido.')">
+                                🗑️ Desativar
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        Nenhum funcionário cadastrado ainda.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

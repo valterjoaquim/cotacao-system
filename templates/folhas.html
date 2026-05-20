@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>💰 Folhas Salariais</h1>
+
+<br>
+
+<a href="/nova-folha" class="btn">➕ Nova Folha</a>
+<a href="/funcionarios" class="btn">👥 Funcionários</a>
+
+<br><br>
+
+<div class="card">
+
+<table width="100%" cellpadding="10" style="border-collapse:collapse;">
+
+    <tr style="background:#0d47a1; color:white;">
+        <th>ID</th>
+        <th>Funcionário</th>
+        <th>Cargo</th>
+        <th>Mês/Ano</th>
+        <th>Bruto</th>
+        <th>INSS</th>
+        <th>Descontos</th>
+        <th>Líquido</th>
+        <th>Data</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for f in folhas %}
+    <tr style="border-bottom:1px solid #eee;">
+        <td>#{{ f[0] }}</td>
+        <td><strong>{{ f[1] }}</strong></td>
+        <td>{{ f[2] }}</td>
+        <td>{{ f[3] }}/{{ f[4] }}</td>
+        <td>{{ "%.2f"|format(f[5] or 0) }} MT</td>
+        <td>{{ "%.2f"|format(f[6] or 0) }} MT</td>
+        <td>{{ "%.2f"|format(f[7] or 0) }} MT</td>
+        <td>
+            <strong style="color:#d32f2f;">
+                {{ "%.2f"|format(f[8] or 0) }} MT
+            </strong>
+        </td>
+        <td>{{ f[9] }}</td>
+        <td>
+            <a class="btn red" href="/recibo-folha/{{ f[0] }}">
+                📄 Recibo PDF
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="10" style="text-align:center; padding:30px; color:#777;">
+            Nenhuma folha salarial criada ainda.
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+</div>
+
+{% endblock %}

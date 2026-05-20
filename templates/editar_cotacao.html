@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .page-title {
+        margin-bottom: 5px;
+        color: #0d47a1;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 25px;
+    }
+
+    .section-title {
+        margin-top: 0;
+        color: #0d47a1;
+        border-left: 5px solid #d32f2f;
+        padding-left: 10px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 6px;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        outline: none;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    .table-cotacao {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        background: white;
+    }
+
+    .table-cotacao th {
+        background: #0d47a1;
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+
+    .table-cotacao td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .table-cotacao input,
+    .table-cotacao select {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    .actions {
+        margin-top: 25px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+        background: #0d47a1;
+    }
+
+    @media (max-width: 800px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .table-cotacao {
+            font-size: 13px;
+        }
+    }
+</style>
+
+<h1 class="page-title">✏️ Editar Cotação</h1>
+<p class="subtitle">Atualize os dados principais e os itens da cotação selecionada.</p>
+
+<div class="card">
+
+<form method="POST">
+
+    <h3 class="section-title">🏢 Dados da Empresa Cliente</h3>
+
+    <div class="form-grid">
+
+        <div class="form-group">
+            <label>Nome da Empresa</label>
+            <input type="text" name="cliente" value="{{ c[1] }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Endereço</label>
+            <input type="text" name="endereco" value="{{ c[3] }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>NUIT</label>
+            <input type="text" name="nuit" value="{{ c[4] }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Nome do Serviço</label>
+            <input type="text" name="servico" value="{{ c[2] }}" required>
+        </div>
+
+    </div>
+
+    <br><br>
+
+    <h3 class="section-title">📋 Termos da Cotação</h3>
+
+    <div class="form-grid">
+
+        <div class="form-group">
+            <label>Condição de Pagamento</label>
+            <select name="pagamento" required>
+                <option value="60/40" {% if c[5] != "100" %}selected{% endif %}>
+                    60% adjudicação + 40% entrega
+                </option>
+
+                <option value="100" {% if c[5] == "100" %}selected{% endif %}>
+                    100% no ato da adjudicação
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Prazo de Entrega</label>
+            <input type="text" name="prazo" value="{{ c[6] }}" required>
+        </div>
+
+        <div class="form-group" style="grid-column:1 / -1;">
+            <label>NB (Opcional)</label>
+            <textarea name="nb" style="min-height:90px; resize:vertical;">{{ c[7] }}</textarea>
+        </div>
+
+    </div>
+
+    <br><br>
+
+    <h3 class="section-title">📦 Itens da Cotação</h3>
+
+    <table class="table-cotacao">
+        <thead>
+            <tr>
+                <th style="width:90px;">Qtd</th>
+                <th style="width:120px;">Unidade</th>
+                <th>Descrição</th>
+                <th style="width:160px;">Preço Unitário</th>
+                <th style="width:90px;">Ação</th>
+            </tr>
+        </thead>
+
+        <tbody id="itens">
+            {% for item in itens %}
+            <tr>
+                <td>
+                    <input type="number" name="quantidade[]" step="0.01" value="{{ item[2] }}" style="width:80px;">
+                </td>
+
+                <td>
+                    <select name="unidade[]" style="width:100%;">
+                        <option {% if item[3] == "un" %}selected{% endif %}>un</option>
+                        <option {% if item[3] == "m" %}selected{% endif %}>m</option>
+                        <option {% if item[3] == "kg" %}selected{% endif %}>kg</option>
+                        <option {% if item[3] == "L" %}selected{% endif %}>L</option>
+                        <option {% if item[3] == "m²" %}selected{% endif %}>m²</option>
+                        <option {% if item[3] == "m³" %}selected{% endif %}>m³</option>
+                        <option {% if item[3] == "cx" %}selected{% endif %}>cx</option>
+                    </select>
+                </td>
+
+                <td>
+                    <input type="text" name="descricao[]" value="{{ item[4] }}" style="width:100%;">
+                </td>
+
+                <td>
+                    <input type="number" name="preco[]" step="0.01" value="{{ item[5] }}" style="width:130px;">
+                </td>
+
+                <td>
+                    <button type="button" class="btn red" onclick="removerLinha(this)">
+                        Remover
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="actions">
+        <button type="button" onclick="adicionarLinha()" class="btn btn-secondary">
+            ➕ Adicionar Item
+        </button>
+
+        <button type="submit" class="btn">
+            💾 Salvar Alterações
+        </button>
+
+        <a href="/historico" class="btn red">
+            Cancelar
+        </a>
+    </div>
+
+</form>
+
+</div>
+
+<script>
+function adicionarLinha() {
+    const tabela = document.getElementById("itens");
+    const novaLinha = document.createElement("tr");
+
+    novaLinha.innerHTML = `
+        <td>
+            <input type="number" name="quantidade[]" step="0.01" style="width:80px;">
+        </td>
+
+        <td>
+            <select name="unidade[]" style="width:100%;">
+                <option>un</option>
+                <option>m</option>
+                <option>kg</option>
+                <option>L</option>
+                <option>m²</option>
+                <option>m³</option>
+                <option>cx</option>
+            </select>
+        </td>
+
+        <td>
+            <input type="text" name="descricao[]" style="width:100%;">
+        </td>
+
+        <td>
+            <input type="number" name="preco[]" step="0.01" style="width:130px;">
+        </td>
+
+        <td>
+            <button type="button" class="btn red" onclick="removerLinha(this)">
+                Remover
+            </button>
+        </td>
+    `;
+
+    tabela.appendChild(novaLinha);
+}
+
+function removerLinha(botao) {
+    const tabela = document.getElementById("itens");
+
+    if (tabela.rows.length > 1) {
+        botao.closest("tr").remove();
+    } else {
+        alert("A cotação deve ter pelo menos uma linha de item.");
+    }
+}
+</script>
+
+{% endblock %}

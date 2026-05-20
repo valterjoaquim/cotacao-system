@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Sistema de Cotação</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0d47a1, #ffffff);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            width: 340px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #0d47a1;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #b71c1c;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: gray;
+            margin-bottom: 20px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+    <!-- LOGO -->
+    <img src="{{ url_for('static', filename='logo/logo.png') }}" class="logo">
+
+    <h2>🏢 Sistema de Cotação</h2>
+    <div class="subtitle">Acesso restrito</div>
+
+    <form method="POST">
+        <input name="username" placeholder="Usuário" required>
+        <input name="password" type="password" placeholder="Senha" required>
+
+        <button type="submit">Entrar</button>
+    </form>
+
+</div>
+
+</body>
+</html>

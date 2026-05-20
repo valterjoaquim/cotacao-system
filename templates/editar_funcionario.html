@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✏️ Editar Funcionário</h1>
+
+<br>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Nome do Funcionário</label>
+    <input type="text" name="nome" value="{{ f[1] }}" required>
+
+    <br><br>
+
+    <label>Cargo</label>
+    <input type="text" name="cargo" value="{{ f[2] }}">
+
+    <br><br>
+
+    <label>Salário por Hora</label>
+    <input type="number" name="salario_hora" step="0.01" value="{{ f[3] }}" required>
+
+    <br><br>
+
+    <label>Telefone</label>
+    <input type="text" name="telefone" value="{{ f[4] }}">
+
+    <br><br>
+
+    <label>Estado</label>
+    <select name="estado">
+        <option value="Ativo" {% if f[5] == "Ativo" %}selected{% endif %}>Ativo</option>
+        <option value="Inativo" {% if f[5] == "Inativo" %}selected{% endif %}>Inativo</option>
+    </select>
+
+    <br><br>
+
+    <button class="btn">💾 Salvar Alterações</button>
+    <a href="/funcionarios" class="btn red">Cancelar</a>
+
+</form>
+
+</div>
+
+{% endblock %}

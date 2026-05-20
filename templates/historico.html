@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        gap: 15px;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        color: #0d47a1;
+    }
+
+    .page-header p {
+        margin: 5px 0 0;
+        color: #666;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .cotacoes-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    .cotacoes-table th {
+        background: #0d47a1;
+        color: white;
+        padding: 14px 12px;
+        text-align: left;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .cotacoes-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .cotacoes-table tr:hover {
+        background: #f5f8ff;
+    }
+
+    .badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .badge-blue {
+        background: #e3f2fd;
+        color: #0d47a1;
+    }
+
+    .badge-green {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-gray {
+        background: #eeeeee;
+        color: #555;
+    }
+
+    .total {
+        color: #d32f2f;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-edit {
+        background: #f9a825;
+    }
+
+    .btn-delete {
+        background: #b71c1c;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #777;
+    }
+
+    @media (max-width: 800px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1>📄 Histórico de Cotações</h1>
+        <p>Consulte, edite, baixe, partilhe ou apague as cotações geradas.</p>
+    </div>
+
+    <a class="btn" href="/nova-cotacao">➕ Nova Cotação</a>
+</div>
+
+<div class="card">
+
+    <div class="table-wrapper">
+
+        <table class="cotacoes-table">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Empresa Cliente</th>
+                    <th>Serviço</th>
+                    <th>Pagamento</th>
+                    <th>NB</th>
+                    <th>Total</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for c in cotacoes %}
+                <tr>
+                    <td>#{{ c[0] }}</td>
+                    <td><strong>{{ c[1] }}</strong></td>
+                    <td>{{ c[2] }}</td>
+
+                    <td>
+                        {% if c[5] == "100" %}
+                            <span class="badge badge-green">100%</span>
+                        {% else %}
+                            <span class="badge badge-blue">60/40</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if c[7] %}
+                            <span class="badge badge-green">Sim</span>
+                        {% else %}
+                            <span class="badge badge-gray">Não</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="total">
+                        {{ "%.2f"|format(c[10] or 0) }} MT
+                    </td>
+
+                    <td>
+                        <div class="actions">
+                            <a class="btn red" href="/gerar-pdf/{{ c[0] }}">📄 PDF</a>
+
+                            <a class="btn" href="/partilhar/{{ c[0] }}">📤 Partilhar</a>
+
+                            <a class="btn btn-edit" href="/editar-cotacao/{{ c[0] }}">✏️ Editar</a>
+
+                            <a class="btn btn-delete"
+                               href="/apagar-cotacao/{{ c[0] }}"
+                               onclick="return confirm('Tens certeza que desejas apagar esta cotação? Esta ação não pode ser desfeita.')">
+                               🗑️ Apagar
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        Nenhuma cotação foi criada ainda.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

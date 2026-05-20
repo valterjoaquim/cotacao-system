@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d47a1, #1565c0);
+        color: white;
+        padding: 28px;
+        border-radius: 16px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 20px rgba(13, 71, 161, 0.18);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+    }
+
+    .page-header p {
+        margin: 8px 0 0;
+        opacity: 0.9;
+    }
+
+    .form-card {
+        background: white;
+        padding: 28px;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .section-title {
+        color: #0d47a1;
+        margin-top: 0;
+        border-left: 5px solid #d32f2f;
+        padding-left: 12px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 7px;
+    }
+
+    .form-group small {
+        display: block;
+        color: #777;
+        margin-top: 6px;
+        font-size: 12px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 13px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background: #fafafa;
+        font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #0d47a1;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(13, 71, 161, 0.10);
+    }
+
+    .rules-box {
+        background: #f5f8ff;
+        border: 1px solid #dbe8ff;
+        border-left: 5px solid #0d47a1;
+        padding: 18px;
+        border-radius: 12px;
+        color: #333;
+        margin-bottom: 25px;
+    }
+
+    .rules-box strong {
+        color: #0d47a1;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 800px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1>💰 Nova Folha Salarial</h1>
+    <p>Registe as horas trabalhadas, horas extras, descontos e gere a folha salarial do funcionário.</p>
+</div>
+
+<div class="form-card">
+
+<form method="POST">
+
+    <h3 class="section-title">👤 Dados do Funcionário</h3>
+
+    <div class="form-grid">
+        <div class="form-group" style="grid-column:1 / -1;">
+            <label>Selecionar Funcionário</label>
+            <select name="funcionario_id" required>
+                <option value="">-- Escolha o funcionário --</option>
+
+                {% for f in funcionarios %}
+                <option value="{{ f[0] }}">
+                    {{ f[1] }} - {{ f[2] }} | {{ "%.2f"|format(f[3] or 0) }} MT/h
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Mês</label>
+            <select name="mes" required>
+                <option>Janeiro</option>
+                <option>Fevereiro</option>
+                <option>Março</option>
+                <option>Abril</option>
+                <option>Maio</option>
+                <option>Junho</option>
+                <option>Julho</option>
+                <option>Agosto</option>
+                <option>Setembro</option>
+                <option>Outubro</option>
+                <option>Novembro</option>
+                <option>Dezembro</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Ano</label>
+            <input type="number" name="ano" value="2026" required>
+        </div>
+    </div>
+
+    <h3 class="section-title">⏱ Horas Trabalhadas</h3>
+
+    <div class="form-grid">
+
+        <div class="form-group">
+            <label>Horas Normais</label>
+            <input type="number" name="horas_normais" step="0.01" value="0" required>
+            <small>Dias úteis 08h–17h / Sábado 08h–14h30</small>
+        </div>
+
+        <div class="form-group">
+            <label>Horas Extra 50%</label>
+            <input type="number" name="horas_extra_50" step="0.01" value="0" required>
+            <small>Dias úteis 17h–20h</small>
+        </div>
+
+        <div class="form-group">
+            <label>Horas Extra 100%</label>
+            <input type="number" name="horas_extra_100" step="0.01" value="0" required>
+            <small>Depois das 20h, sábado após 14h30 e domingo</small>
+        </div>
+
+        <div class="form-group">
+            <label>Outros Descontos</label>
+            <input type="number" name="outros_descontos" step="0.01" value="0" required>
+            <small>Além do INSS obrigatório de 3%</small>
+        </div>
+
+    </div>
+
+    <div class="rules-box">
+        <strong>Regras aplicadas:</strong><br><br>
+        Hora normal = 100% do salário/hora<br>
+        Hora extra 50% = salário/hora × 1.5<br>
+        Hora extra 100% = salário/hora × 2<br>
+        INSS = 3% sobre o salário bruto
+    </div>
+
+    <div class="actions">
+        <button class="btn">
+            💾 Gerar Folha Salarial
+        </button>
+
+        <a href="/funcionarios" class="btn red">
+            Cancelar
+        </a>
+    </div>
+
+</form>
+
+</div>
+
+{% endblock %}

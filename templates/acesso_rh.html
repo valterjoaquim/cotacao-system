@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🔐 Acesso Restrito ao RH</h1>
+
+<br>
+
+<div class="card" style="max-width:450px;">
+
+    <p>
+        Esta área contém informações sensíveis de funcionários e salários.
+        Introduza a palavra-passe de RH para continuar.
+    </p>
+
+    <form method="POST">
+
+        <label>Palavra-passe RH</label>
+        <input type="password" name="senha_rh" required>
+
+        <br><br>
+
+        <button class="btn">
+            Entrar no RH
+        </button>
+
+        <a href="/" class="btn red">
+            Cancelar
+        </a>
+
+    </form>
+
+</div>
+
+{% endblock %}

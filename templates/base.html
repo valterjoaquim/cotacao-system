@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title if title else "Sistema de Gestão Empresarial" }}</title>
+
+    <style>
+
+        *{
+            box-sizing:border-box;
+        }
+
+        body{
+            margin:0;
+            font-family:Arial, sans-serif;
+            display:flex;
+            background:#f4f6f9;
+        }
+
+        /* =========================
+           SIDEBAR
+        ========================= */
+
+        .sidebar{
+            width:240px;
+            height:100vh;
+            background:linear-gradient(180deg,#0d47a1,#1565c0);
+            color:white;
+            padding:20px;
+            position:fixed;
+            overflow-y:auto;
+            box-shadow:4px 0 15px rgba(0,0,0,0.08);
+        }
+
+        .sidebar-logo{
+            text-align:center;
+            margin-bottom:25px;
+        }
+
+        .sidebar-logo img{
+            width:80px;
+            height:80px;
+            object-fit:contain;
+            background:white;
+            border-radius:12px;
+            padding:8px;
+        }
+
+        .sidebar h2{
+            margin:10px 0 0;
+            font-size:18px;
+            text-align:center;
+            color:white;
+        }
+
+        .sidebar p{
+            margin:5px 0 0;
+            text-align:center;
+            font-size:13px;
+            opacity:0.8;
+        }
+
+        .menu-title{
+            margin-top:25px;
+            margin-bottom:10px;
+            font-size:12px;
+            letter-spacing:1px;
+            opacity:0.7;
+        }
+
+        .sidebar a{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            color:white;
+            text-decoration:none;
+            padding:12px 14px;
+            margin:8px 0;
+            border-radius:8px;
+            transition:0.2s;
+            background:rgba(255,255,255,0.08);
+            font-size:14px;
+        }
+
+        .sidebar a:hover{
+            background:#d32f2f;
+            transform:translateX(3px);
+        }
+
+        .logout{
+            margin-top:25px;
+            background:#d32f2f !important;
+        }
+
+        .rh-access{
+            background:#1b5e20 !important;
+        }
+
+        .rh-lock{
+            background:#6a1b9a !important;
+        }
+
+        /* =========================
+           CONTENT
+        ========================= */
+
+        .content{
+            margin-left:240px;
+            padding:25px;
+            width:100%;
+        }
+
+        /* =========================
+           CARDS
+        ========================= */
+
+        .card{
+            background:white;
+            padding:22px;
+            border-radius:12px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        /* =========================
+           BUTTONS
+        ========================= */
+
+        .btn{
+            display:inline-block;
+            padding:10px 16px;
+            background:#0d47a1;
+            color:white;
+            text-decoration:none;
+            border:none;
+            border-radius:7px;
+            cursor:pointer;
+            transition:0.2s;
+            font-size:14px;
+        }
+
+        .btn:hover{
+            opacity:0.9;
+            transform:translateY(-1px);
+        }
+
+        .btn.red{
+            background:#d32f2f;
+        }
+
+        /* =========================
+           INPUTS
+        ========================= */
+
+        input,
+        select,
+        textarea{
+            width:100%;
+            padding:11px;
+            border:1px solid #ddd;
+            border-radius:6px;
+            outline:none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus{
+            border-color:#0d47a1;
+        }
+
+        /* =========================
+           TABLES
+        ========================= */
+
+        table{
+            width:100%;
+        }
+
+        th{
+            background:#0d47a1;
+            color:white;
+            text-align:left;
+            padding:12px;
+        }
+
+        td{
+            padding:12px;
+        }
+
+        tr{
+            border-bottom:1px solid #eee;
+        }
+
+        tr:hover{
+            background:#f5f8ff;
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media(max-width:900px){
+
+            .sidebar{
+                width:100%;
+                height:auto;
+                position:relative;
+            }
+
+            .content{
+                margin-left:0;
+            }
+
+            body{
+                flex-direction:column;
+            }
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <div class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <img src="{{ url_for('static', filename='logo/logo.png') }}">
+
+            <h2>Sistema Empresarial</h2>
+
+            <p>
+                Gestão de Cotações & RH
+            </p>
+
+        </div>
+
+        <!-- =========================
+             COTAÇÕES
+        ========================== -->
+
+        <div class="menu-title">
+            COTAÇÕES
+        </div>
+
+        <a href="/">
+            📊 Dashboard
+        </a>
+
+        <a href="/nova-cotacao">
+            ➕ Nova Cotação
+        </a>
+
+        <a href="/historico">
+            📄 Histórico de Cotações
+        </a>
+
+        <!-- =========================
+             RECURSOS HUMANOS
+        ========================== -->
+
+        <div class="menu-title">
+            RECURSOS HUMANOS
+        </div>
+
+        <a href="/acesso-rh" class="rh-access">
+            🔐 Acessar RH
+        </a>
+
+        {% if session.get("rh_autorizado") %}
+
+        <a href="/funcionarios">
+            👥 Funcionários
+        </a>
+
+        <a href="/nova-folha">
+            💰 Nova Folha Salarial
+        </a>
+
+        <a href="/folhas">
+            📋 Folhas Salariais
+        </a>
+
+        <a href="/sair-rh" class="rh-lock">
+            🔒 Bloquear RH
+        </a>
+
+        {% endif %}
+
+        <!-- =========================
+             SISTEMA
+        ========================== -->
+
+        <div class="menu-title">
+            SISTEMA
+        </div>
+
+        <a href="/logout" class="logout">
+            🚪 Terminar Sessão
+        </a>
+
+    </div>
+
+    <!-- =========================
+         CONTEÚDO
+    ========================== -->
+
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+
+</body>
+</html>
