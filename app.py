@@ -91,6 +91,13 @@ def init_db():
     )
     """)
 
+    cursor.execute("ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'Funcionário'")
+    cursor.execute("ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS bi TEXT")
+    cursor.execute("ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS nuit TEXT")
+    cursor.execute("ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS email TEXT")
+    cursor.execute("ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS endereco TEXT")
+    cursor.execute("ALTER TABLE funcionarios ALTER COLUMN salario_hora SET DEFAULT 0")
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS folhas_salariais (
         id SERIAL PRIMARY KEY,
@@ -862,26 +869,48 @@ def funcionarios():
     if request.method == 'POST':
 
         nome = request.form.get('nome', '')
+        tipo = request.form.get('tipo', 'Funcionário')
         cargo = request.form.get('cargo', '')
-        salario_hora = request.form.get('salario_hora', '0')
         telefone = request.form.get('telefone', '')
+        bi = request.form.get('bi', '')
+        nuit = request.form.get('nuit', '')
+        email = request.form.get('email', '')
+        endereco = request.form.get('endereco', '')
+
+        if tipo == "Estagiário":
+            salario_hora = 0
+        else:
+            salario_hora = float(request.form.get('salario_hora') or 0)
 
         cursor.execute("""
         INSERT INTO funcionarios (
             nome,
+            tipo,
             cargo,
             salario_hora,
-            telefone
+            telefone,
+            bi,
+            nuit,
+            email,
+            endereco,
+            estado
         )
-        VALUES (%s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             nome,
+            tipo,
             cargo,
-            float(salario_hora),
-            telefone
+            salario_hora,
+            telefone,
+            bi,
+            nuit,
+            email,
+            endereco,
+            'Ativo'
         ))
 
         conn.commit()
+        conn.close()
 
         return redirect('/funcionarios')
 
@@ -916,24 +945,43 @@ def editar_funcionario(id):
     if request.method == 'POST':
 
         nome = request.form.get('nome', '')
+        tipo = request.form.get('tipo', 'Funcionário')
         cargo = request.form.get('cargo', '')
-        salario_hora = request.form.get('salario_hora', '0')
         telefone = request.form.get('telefone', '')
+        bi = request.form.get('bi', '')
+        nuit = request.form.get('nuit', '')
+        email = request.form.get('email', '')
+        endereco = request.form.get('endereco', '')
         estado = request.form.get('estado', 'Ativo')
+
+        if tipo == "Estagiário":
+            salario_hora = 0
+        else:
+            salario_hora = float(request.form.get('salario_hora') or 0)
 
         cursor.execute("""
         UPDATE funcionarios
         SET nome=%s,
+            tipo=%s,
             cargo=%s,
             salario_hora=%s,
             telefone=%s,
+            bi=%s,
+            nuit=%s,
+            email=%s,
+            endereco=%s,
             estado=%s
         WHERE id=%s
         """, (
             nome,
+            tipo,
             cargo,
-            float(salario_hora),
+            salario_hora,
             telefone,
+            bi,
+            nuit,
+            email,
+            endereco,
             estado,
             id
         ))
@@ -1063,6 +1111,7 @@ def nova_folha():
     SELECT id, nome, cargo, salario_hora
     FROM funcionarios
     WHERE estado='Ativo'
+    AND COALESCE(tipo, 'Funcionário') = 'Funcionário'
     ORDER BY nome ASC
     """)
 

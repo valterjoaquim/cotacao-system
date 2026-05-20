@@ -8,17 +8,6 @@
         padding: 28px;
         border-radius: 16px;
         margin-bottom: 25px;
-        box-shadow: 0 8px 20px rgba(13, 71, 161, 0.18);
-    }
-
-    .page-header h1 {
-        margin: 0;
-        font-size: 28px;
-    }
-
-    .page-header p {
-        margin: 8px 0 0;
-        opacity: 0.9;
     }
 
     .form-card,
@@ -26,13 +15,11 @@
         background: white;
         padding: 28px;
         border-radius: 16px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         margin-bottom: 25px;
     }
 
     .section-title {
         color: #0d47a1;
-        margin-top: 0;
         border-left: 5px solid #d32f2f;
         padding-left: 12px;
     }
@@ -40,42 +27,21 @@
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 22px;
+        gap: 20px;
     }
 
     .form-group label {
         display: block;
         font-weight: bold;
-        color: #333;
-        margin-bottom: 7px;
+        margin-bottom: 6px;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
         width: 100%;
-        padding: 13px;
-        border: 1px solid #ddd;
+        padding: 12px;
         border-radius: 10px;
-        background: #fafafa;
-        font-size: 14px;
-    }
-
-    .form-group input:focus {
-        border-color: #0d47a1;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(13, 71, 161, 0.10);
-    }
-
-    .actions {
-        margin-top: 22px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .row-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+        border: 1px solid #ddd;
     }
 
     .table-wrapper {
@@ -90,25 +56,16 @@
     .func-table th {
         background: #0d47a1;
         color: white;
-        padding: 14px 12px;
+        padding: 12px;
         text-align: left;
-        font-size: 14px;
-        white-space: nowrap;
     }
 
     .func-table td {
-        padding: 13px 12px;
+        padding: 12px;
         border-bottom: 1px solid #eee;
-        font-size: 14px;
-        vertical-align: middle;
-    }
-
-    .func-table tr:hover {
-        background: #f5f8ff;
     }
 
     .badge {
-        display: inline-block;
         padding: 5px 10px;
         border-radius: 20px;
         font-size: 12px;
@@ -120,83 +77,92 @@
         color: #2e7d32;
     }
 
+    .badge-blue {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+
     .badge-gray {
-        background: #eeeeee;
+        background: #eee;
         color: #555;
     }
 
-    .salary {
-        color: #d32f2f;
-        font-weight: bold;
-        white-space: nowrap;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 35px;
-        color: #777;
-    }
-
-    .btn-small {
-        padding: 8px 11px;
-        font-size: 13px;
-    }
-
-    .btn-warning {
-        background: #f9a825;
-    }
-
-    @media (max-width: 800px) {
-        .form-grid {
-            grid-template-columns: 1fr;
+    @media(max-width:800px){
+        .form-grid{
+            grid-template-columns:1fr;
         }
     }
 </style>
 
 <div class="page-header">
-    <h1>👥 Funcionários</h1>
-    <p>Cadastre, consulte, edite e desative funcionários usados no módulo de folha salarial.</p>
+    <h1>👥 Funcionários e Estagiários</h1>
+    <p>Gestão completa de recursos humanos.</p>
 </div>
 
 <div class="form-card">
 
-    <h3 class="section-title">➕ Cadastrar Funcionário</h3>
+    <h3 class="section-title">➕ Novo Cadastro</h3>
 
     <form method="POST">
 
         <div class="form-grid">
 
             <div class="form-group">
-                <label>Nome do Funcionário</label>
-                <input type="text" name="nome" required placeholder="Ex: João Manuel">
+                <label>Tipo</label>
+
+                <select name="tipo" required>
+                    <option value="Funcionario">Funcionário</option>
+                    <option value="Estagiario">Estagiário</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" name="nome" required>
             </div>
 
             <div class="form-group">
                 <label>Cargo</label>
-                <input type="text" name="cargo" placeholder="Ex: Técnico, Motorista, Auxiliar...">
-            </div>
-
-            <div class="form-group">
-                <label>Salário por Hora</label>
-                <input type="number" name="salario_hora" step="0.01" required placeholder="Ex: 150.00">
+                <input type="text" name="cargo">
             </div>
 
             <div class="form-group">
                 <label>Telefone</label>
-                <input type="text" name="telefone" placeholder="Ex: 84 000 0000">
+                <input type="text" name="telefone">
+            </div>
+
+            <div class="form-group">
+                <label>BI</label>
+                <input type="text" name="bi">
+            </div>
+
+            <div class="form-group">
+                <label>NUIT</label>
+                <input type="text" name="nuit">
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email">
+            </div>
+
+            <div class="form-group">
+                <label>Endereço</label>
+                <input type="text" name="endereco">
+            </div>
+
+            <div class="form-group">
+                <label>Salário por Hora</label>
+                <input type="number" name="salario_hora" step="0.01">
             </div>
 
         </div>
 
-        <div class="actions">
-            <button class="btn">
-                💾 Salvar Funcionário
-            </button>
+        <br>
 
-            <a href="/folhas" class="btn red">
-                Ver Folhas Salariais
-            </a>
-        </div>
+        <button class="btn">
+            💾 Salvar Cadastro
+        </button>
 
     </form>
 
@@ -204,7 +170,7 @@
 
 <div class="table-card">
 
-    <h3 class="section-title">📋 Lista de Funcionários</h3>
+    <h3 class="section-title">📋 Lista de Cadastros</h3>
 
     <div class="table-wrapper">
 
@@ -213,51 +179,65 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Tipo</th>
                     <th>Nome</th>
                     <th>Cargo</th>
-                    <th>Salário/Hora</th>
                     <th>Telefone</th>
+                    <th>BI</th>
+                    <th>NUIT</th>
+                    <th>Email</th>
+                    <th>Salário/Hora</th>
                     <th>Estado</th>
-                    <th>Ações</th>
                 </tr>
             </thead>
 
             <tbody>
+
                 {% for f in funcionarios %}
+
                 <tr>
+
                     <td>#{{ f[0] }}</td>
-                    <td><strong>{{ f[1] }}</strong></td>
-                    <td>{{ f[2] }}</td>
-                    <td class="salary">{{ "%.2f"|format(f[3] or 0) }} MT</td>
-                    <td>{{ f[4] }}</td>
+
                     <td>
-                        {% if f[5] == "Ativo" %}
-                            <span class="badge badge-green">{{ f[5] }}</span>
+                        {% if f[6] == "Funcionario" %}
+                            <span class="badge badge-green">
+                                Funcionário
+                            </span>
                         {% else %}
-                            <span class="badge badge-gray">{{ f[5] }}</span>
+                            <span class="badge badge-blue">
+                                Estagiário
+                            </span>
                         {% endif %}
                     </td>
-                    <td>
-                        <div class="row-actions">
-                            <a class="btn btn-small btn-warning" href="/editar-funcionario/{{ f[0] }}">
-                                ✏️ Editar
-                            </a>
 
-                            <a class="btn red btn-small"
-                               href="/apagar-funcionario/{{ f[0] }}"
-                               onclick="return confirm('Deseja desativar este funcionário? O histórico salarial será mantido.')">
-                                🗑️ Desativar
-                            </a>
-                        </div>
+                    <td>{{ f[1] }}</td>
+                    <td>{{ f[2] }}</td>
+                    <td>{{ f[4] }}</td>
+                    <td>{{ f[7] }}</td>
+                    <td>{{ f[8] }}</td>
+                    <td>{{ f[9] }}</td>
+
+                    <td>
+                        {{ "%.2f"|format(f[3] or 0) }} MT
                     </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        Nenhum funcionário cadastrado ainda.
+
+                    <td>
+                        {% if f[5] == "Ativo" %}
+                            <span class="badge badge-green">
+                                {{ f[5] }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-gray">
+                                {{ f[5] }}
+                            </span>
+                        {% endif %}
                     </td>
+
                 </tr>
+
                 {% endfor %}
+
             </tbody>
 
         </table>
