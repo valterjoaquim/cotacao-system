@@ -63,6 +63,7 @@
     .func-table td {
         padding: 12px;
         border-bottom: 1px solid #eee;
+        vertical-align: middle;
     }
 
     .badge {
@@ -70,6 +71,7 @@
         border-radius: 20px;
         font-size: 12px;
         font-weight: bold;
+        display: inline-block;
     }
 
     .badge-green {
@@ -85,6 +87,21 @@
     .badge-gray {
         background: #eee;
         color: #555;
+    }
+
+    .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-small {
+        padding: 8px 11px;
+        font-size: 13px;
+    }
+
+    .btn-warning {
+        background: #f9a825;
     }
 
     @media(max-width:800px){
@@ -109,8 +126,7 @@
 
             <div class="form-group">
                 <label>Tipo</label>
-
-                <select name="tipo" required>
+                <select name="tipo" id="tipo" required onchange="controlarSalario()">
                     <option value="Funcionario">Funcionário</option>
                     <option value="Estagiario">Estagiário</option>
                 </select>
@@ -122,7 +138,7 @@
             </div>
 
             <div class="form-group">
-                <label>Cargo</label>
+                <label>Cargo / Função</label>
                 <input type="text" name="cargo">
             </div>
 
@@ -151,9 +167,9 @@
                 <input type="text" name="endereco">
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="campo_salario">
                 <label>Salário por Hora</label>
-                <input type="number" name="salario_hora" step="0.01">
+                <input type="number" name="salario_hora" step="0.01" value="0">
             </div>
 
         </div>
@@ -188,6 +204,7 @@
                     <th>Email</th>
                     <th>Salário/Hora</th>
                     <th>Estado</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
 
@@ -196,22 +213,17 @@
                 {% for f in funcionarios %}
 
                 <tr>
-
                     <td>#{{ f[0] }}</td>
 
                     <td>
                         {% if f[6] == "Funcionario" %}
-                            <span class="badge badge-green">
-                                Funcionário
-                            </span>
+                            <span class="badge badge-green">Funcionário</span>
                         {% else %}
-                            <span class="badge badge-blue">
-                                Estagiário
-                            </span>
+                            <span class="badge badge-blue">Estagiário</span>
                         {% endif %}
                     </td>
 
-                    <td>{{ f[1] }}</td>
+                    <td><strong>{{ f[1] }}</strong></td>
                     <td>{{ f[2] }}</td>
                     <td>{{ f[4] }}</td>
                     <td>{{ f[7] }}</td>
@@ -219,21 +231,44 @@
                     <td>{{ f[9] }}</td>
 
                     <td>
-                        {{ "%.2f"|format(f[3] or 0) }} MT
+                        {% if f[6] == "Estagiario" %}
+                            <span class="badge badge-gray">Sem salário</span>
+                        {% else %}
+                            {{ "%.2f"|format(f[3] or 0) }} MT
+                        {% endif %}
                     </td>
 
                     <td>
                         {% if f[5] == "Ativo" %}
-                            <span class="badge badge-green">
-                                {{ f[5] }}
-                            </span>
+                            <span class="badge badge-green">{{ f[5] }}</span>
                         {% else %}
-                            <span class="badge badge-gray">
-                                {{ f[5] }}
-                            </span>
+                            <span class="badge badge-gray">{{ f[5] }}</span>
                         {% endif %}
                     </td>
 
+                    <td>
+                        <div class="row-actions">
+
+                            <a class="btn btn-small btn-warning" href="/editar-funcionario/{{ f[0] }}">
+                                ✏️ Editar
+                            </a>
+
+                            <a class="btn red btn-small"
+                               href="/apagar-funcionario/{{ f[0] }}"
+                               onclick="return confirm('Deseja desativar este cadastro? O histórico será mantido.')">
+                                🗑️ Desativar
+                            </a>
+
+                        </div>
+                    </td>
+                </tr>
+
+                {% else %}
+
+                <tr>
+                    <td colspan="11" style="text-align:center; padding:35px; color:#777;">
+                        Nenhum cadastro encontrado.
+                    </td>
                 </tr>
 
                 {% endfor %}
@@ -245,5 +280,20 @@
     </div>
 
 </div>
+
+<script>
+function controlarSalario() {
+    const tipo = document.getElementById("tipo").value;
+    const campoSalario = document.getElementById("campo_salario");
+
+    if (tipo === "Estagiario") {
+        campoSalario.style.display = "none";
+    } else {
+        campoSalario.style.display = "block";
+    }
+}
+
+controlarSalario();
+</script>
 
 {% endblock %}

@@ -1001,10 +1001,9 @@ def editar_funcionario(id):
     conn.close()
 
     if not funcionario:
-        return "Funcionário não encontrado"
+        return "Cadastro não encontrado"
 
     return render_template("editar_funcionario.html", f=funcionario)
-
 
 @app.route('/apagar-funcionario/<int:id>')
 def apagar_funcionario(id):
@@ -1214,115 +1213,183 @@ def recibo_folha(id):
     azul = colors.HexColor("#0d47a1")
     cinza = colors.HexColor("#eeeeee")
     azul_claro = colors.HexColor("#e3f2fd")
+    vermelho = colors.HexColor("#d32f2f")
     data = datetime.now().strftime("%d/%m/%Y")
 
     def money(v):
         return f"{float(v or 0):,.2f} MT"
 
-    logo_path = "static/logo/logo.png"
+    def desenhar_via(y_topo, titulo_via):
+        """
+        Desenha uma via do recibo.
+        A página A4 fica dividida em duas partes:
+        - Via superior
+        - Via inferior
+        """
 
-    if os.path.exists(logo_path):
-        pdf.drawImage(
-            logo_path,
+        logo_path = "static/logo/logo.png"
+
+        # =========================
+        # CABEÇALHO
+        # =========================
+        if os.path.exists(logo_path):
+            pdf.drawImage(
+                logo_path,
+                40,
+                y_topo - 70,
+                width=75,
+                height=48,
+                preserveAspectRatio=True,
+                mask='auto'
+            )
+
+        pdf.setFillColor(azul)
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(130, y_topo - 25, "RECIBO SALARIAL")
+
+        pdf.setFillColor(vermelho)
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawRightString(555, y_topo - 25, titulo_via)
+
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica", 7)
+
+        pdf.drawString(130, y_topo - 42, "Av. Armando Tivane – Goto")
+        pdf.drawString(130, y_topo - 54, "Cell: (+258) 878340748 / 847891715")
+        pdf.drawString(130, y_topo - 66, "Email: transporteverticalmz@gmail.com")
+        pdf.drawString(130, y_topo - 78, "NUIT: 401560671 | Beira - Moçambique")
+
+        pdf.setStrokeColor(azul)
+        pdf.line(40, y_topo - 88, 555, y_topo - 88)
+
+        # =========================
+        # DADOS DO FUNCIONÁRIO
+        # =========================
+        box_y = y_topo - 162
+
+        pdf.setStrokeColor(cinza)
+        pdf.roundRect(40, box_y, 515, 60, 6, fill=0)
+
+        pdf.setFillColor(azul)
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawString(55, box_y + 44, "DADOS DO FUNCIONÁRIO")
+
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica-Bold", 8)
+
+        pdf.drawString(55, box_y + 28, "Nome:")
+        pdf.drawString(55, box_y + 13, "Cargo:")
+        pdf.drawString(300, box_y + 28, "Mês/Ano:")
+        pdf.drawString(300, box_y + 13, "Salário/Hora:")
+
+        pdf.setFont("Helvetica", 8)
+
+        pdf.drawString(100, box_y + 28, str(folha[1] or ""))
+        pdf.drawString(100, box_y + 13, str(folha[2] or ""))
+        pdf.drawString(365, box_y + 28, f"{folha[4]}/{folha[5]}")
+        pdf.drawString(385, box_y + 13, money(folha[3]))
+
+        # =========================
+        # TABELA
+        # =========================
+        y = box_y - 28
+
+        pdf.setFillColor(azul)
+        pdf.rect(40, y, 515, 18, fill=1)
+
+        pdf.setFillColor(colors.white)
+        pdf.setFont("Helvetica-Bold", 8)
+
+        pdf.drawString(55, y + 6, "Descrição")
+        pdf.drawString(300, y + 6, "Horas")
+        pdf.drawString(430, y + 6, "Valor")
+
+        y -= 18
+
+        linhas = [
+            ("Horas normais 100%", folha[6], folha[9]),
+            ("Horas extra 50%", folha[7], folha[10]),
+            ("Horas extra 100%", folha[8], folha[11]),
+        ]
+
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica", 8)
+
+        for desc, horas, valor in linhas:
+            pdf.drawString(55, y, desc)
+            pdf.drawRightString(340, y, f"{float(horas or 0):,.2f}")
+            pdf.drawRightString(520, y, money(valor))
+
+            pdf.setStrokeColor(cinza)
+            pdf.line(40, y - 5, 555, y - 5)
+
+            y -= 17
+
+        # =========================
+        # RESUMO
+        # =========================
+        resumo_y = y - 8
+
+        pdf.setFillColor(azul_claro)
+        pdf.setStrokeColor(azul)
+        pdf.roundRect(330, resumo_y - 72, 225, 82, 6, fill=1)
+
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica", 8)
+
+        pdf.drawString(345, resumo_y - 8, "Total Bruto:")
+        pdf.drawRightString(540, resumo_y - 8, money(folha[14]))
+
+        pdf.drawString(345, resumo_y - 25, "INSS 3%:")
+        pdf.drawRightString(540, resumo_y - 25, money(folha[12]))
+
+        pdf.drawString(345, resumo_y - 42, "Outros Descontos:")
+        pdf.drawRightString(540, resumo_y - 42, money(folha[13]))
+
+        pdf.setFont("Helvetica-Bold", 9)
+        pdf.drawString(345, resumo_y - 62, "TOTAL LÍQUIDO:")
+        pdf.drawRightString(540, resumo_y - 62, money(folha[15]))
+
+        # =========================
+        # ASSINATURAS
+        # =========================
+        assinatura_y = resumo_y - 82
+
+        pdf.setStrokeColor(colors.black)
+        pdf.line(55, assinatura_y, 225, assinatura_y)
+        pdf.line(330, assinatura_y, 520, assinatura_y)
+
+        pdf.setFont("Helvetica", 7)
+        pdf.drawCentredString(140, assinatura_y - 12, "Assinatura do Funcionário")
+        pdf.drawCentredString(425, assinatura_y - 12, "Assinatura da Empresa")
+
+        # =========================
+        # RODAPÉ DA VIA
+        # =========================
+        pdf.setFont("Helvetica", 6)
+        pdf.setFillColor(colors.grey)
+        pdf.drawString(
             40,
-            height - 130,
-            width=110,
-            height=75,
-            preserveAspectRatio=True,
-            mask='auto'
+            assinatura_y - 28,
+            f"Documento gerado automaticamente em {data}"
         )
 
-    pdf.setFillColor(azul)
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(200, height - 60, "RECIBO SALARIAL")
+    # =========================
+    # DESENHAR DUAS VIAS NA MESMA PÁGINA
+    # =========================
+    desenhar_via(height - 35, "VIA DA EMPRESA")
 
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
-    pdf.drawString(200, height - 85, "Av. Armando Tivane – Goto")
-    pdf.drawString(200, height - 100, "Cell: (+258) 878340748 / 847891715")
-    pdf.drawString(200, height - 115, "Email: transporteverticalmz@gmail.com")
-    pdf.drawString(200, height - 130, "NUIT: 401560671")
-    pdf.drawString(200, height - 145, "Beira - Moçambique")
+    # Linha tracejada para corte/separação
+    pdf.setStrokeColor(colors.grey)
+    pdf.setDash(4, 4)
+    pdf.line(35, height / 2, width - 35, height / 2)
+    pdf.setDash()
 
-    pdf.setStrokeColor(azul)
-    pdf.line(40, height - 165, 555, height - 165)
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawCentredString(width / 2, (height / 2) + 5, "-------------------------------------------------------------------")
 
-    box_y = height - 270
-
-    pdf.setStrokeColor(cinza)
-    pdf.roundRect(40, box_y, 515, 80, 8, fill=0)
-
-    pdf.setFillColor(azul)
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(55, box_y + 60, "DADOS DO FUNCIONÁRIO")
-
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(55, box_y + 38, "Nome:")
-    pdf.drawString(55, box_y + 20, "Cargo:")
-    pdf.drawString(320, box_y + 38, "Mês/Ano:")
-    pdf.drawString(320, box_y + 20, "Salário/Hora:")
-
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(110, box_y + 38, str(folha[1] or ""))
-    pdf.drawString(110, box_y + 20, str(folha[2] or ""))
-    pdf.drawString(395, box_y + 38, f"{folha[4]}/{folha[5]}")
-    pdf.drawString(410, box_y + 20, money(folha[3]))
-
-    y = height - 320
-
-    pdf.setFillColor(azul)
-    pdf.rect(40, y, 515, 24, fill=1)
-
-    pdf.setFillColor(colors.white)
-    pdf.setFont("Helvetica-Bold", 9)
-    pdf.drawString(55, y + 8, "Descrição")
-    pdf.drawString(300, y + 8, "Horas")
-    pdf.drawString(430, y + 8, "Valor")
-
-    y -= 28
-
-    linhas = [
-        ("Horas normais 100%", folha[6], folha[9]),
-        ("Horas extra 50%", folha[7], folha[10]),
-        ("Horas extra 100%", folha[8], folha[11]),
-    ]
-
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
-
-    for desc, horas, valor in linhas:
-        pdf.drawString(55, y, desc)
-        pdf.drawRightString(340, y, f"{float(horas or 0):,.2f}")
-        pdf.drawRightString(520, y, money(valor))
-        pdf.setStrokeColor(cinza)
-        pdf.line(40, y - 6, 555, y - 6)
-        y -= 24
-
-    resumo_y = y - 25
-
-    pdf.setFillColor(azul_claro)
-    pdf.setStrokeColor(azul)
-    pdf.roundRect(330, resumo_y - 95, 225, 105, 6, fill=1)
-
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(345, resumo_y - 15, "Total Bruto:")
-    pdf.drawRightString(540, resumo_y - 15, money(folha[14]))
-
-    pdf.drawString(345, resumo_y - 35, "INSS 3%:")
-    pdf.drawRightString(540, resumo_y - 35, money(folha[12]))
-
-    pdf.drawString(345, resumo_y - 55, "Outros Descontos:")
-    pdf.drawRightString(540, resumo_y - 55, money(folha[13]))
-
-    pdf.setFont("Helvetica-Bold", 11)
-    pdf.drawString(345, resumo_y - 80, "TOTAL LÍQUIDO:")
-    pdf.drawRightString(540, resumo_y - 80, money(folha[15]))
-
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
-    pdf.drawString(40, 105, f"Documento gerado automaticamente em {data}")
+    desenhar_via((height / 2) - 20, "VIA DO FUNCIONÁRIO")
 
     pdf.save()
 
@@ -1331,7 +1398,6 @@ def recibo_folha(id):
         as_attachment=True,
         download_name=f"RECIBO_SALARIAL_{id}.pdf"
     )
-
 
 @app.route('/logout')
 def logout():
