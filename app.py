@@ -13,6 +13,20 @@ SENHA_RH = "rh123"
 
 
 def conectar():
+    """
+    Conexão com PostgreSQL.
+
+    No Render:
+    - usa a variável de ambiente DATABASE_URL.
+
+    No teu PC:
+    - usa o PostgreSQL local.
+    """
+    database_url = os.getenv("DATABASE_URL")
+
+    if database_url:
+        return psycopg2.connect(database_url)
+
     return psycopg2.connect(
         host="localhost",
         database="cotacao_db",
