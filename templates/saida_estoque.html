@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>➖ Saída de Estoque</h1>
+
+<br>
+
+<div class="card">
+
+    <h3>{{ produto[1] }}</h3>
+
+    <p>
+        <strong>Código:</strong> {{ produto[3] }} <br>
+        <strong>Quantidade atual:</strong> {{ produto[4] }} {{ produto[5] }}
+    </p>
+
+    <form method="POST" onsubmit="salvarAssinatura()">
+
+        <label>Funcionário que levou</label>
+        <select name="funcionario_id" required>
+            <option value="">-- Selecionar funcionário --</option>
+
+            {% for f in funcionarios %}
+            <option value="{{ f[0] }}">
+                {{ f[1] }} - {{ f[2] }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+
+        <label>Tipo de saída</label>
+        <select name="tipo_saida" id="tipo_saida" onchange="controlarDevolucao()" required>
+            <option value="">-- Selecionar --</option>
+            <option value="Consumo">Consumo / Material usado</option>
+            <option value="Empréstimo">Empréstimo / Ferramenta</option>
+        </select>
+
+        <br><br>
+
+        <label>Quantidade a retirar</label>
+        <input type="number" step="0.01" name="quantidade" required>
+
+        <br><br>
+
+        <div id="campo_devolucao" style="display:none;">
+            <label>Data prevista de devolução</label>
+            <input type="date" name="data_prevista_devolucao">
+
+            <br><br>
+        </div>
+
+        <label>Serviço / Obra</label>
+        <input type="text" name="servico_obra" placeholder="Ex: Manutenção elevador cliente X">
+
+        <br><br>
+
+        <label>Responsável pela entrega</label>
+        <input type="text" name="responsavel" value="{{ session['user'] }}">
+
+        <br><br>
+
+        <label>Confirmação de recebimento</label>
+        <select name="confirmado" required>
+            <option value="Sim">Sim, funcionário confirmou recebimento</option>
+            <option value="Não">Não confirmado ainda</option>
+        </select>
+
+        <br><br>
+
+        <label>Observação</label>
+        <textarea name="observacao"></textarea>
+
+        <br><br>
+
+        <hr>
+
+        <h3>✍️ Assinatura do Funcionário</h3>
+
+        <canvas
+            id="signature-pad"
+            width="500"
+            height="200"
+            style="border:2px solid #333; border-radius:10px; background:white;">
+        </canvas>
+
+        <br><br>
+
+        <button type="button" onclick="limparAssinatura()" class="btn red">
+            Limpar Assinatura
+        </button>
+
+        <input type="hidden" name="assinatura" id="assinatura">
+
+        <br><br>
+
+        <button class="btn">
+            💾 Confirmar Saída
+        </button>
+
+        <a href="/produtos" class="btn red">
+            Cancelar
+        </a>
+
+    </form>
+
+</div>
+
+<script>
+function controlarDevolucao() {
+    const tipo = document.getElementById("tipo_saida").value;
+    const campo = document.getElementById("campo_devolucao");
+
+    if (tipo === "Empréstimo") {
+        campo.style.display = "block";
+    } else {
+        campo.style.display = "none";
+    }
+}
+
+const canvas = document.getElementById("signature-pad");
+const ctx = canvas.getContext("2d");
+
+let desenhando = false;
+
+canvas.addEventListener("mousedown", iniciar);
+canvas.addEventListener("mouseup", parar);
+canvas.addEventListener("mousemove", desenhar);
+canvas.addEventListener("mouseleave", parar);
+
+function iniciar(e) {
+    desenhando = true;
+    desenhar(e);
+}
+
+function parar() {
+    desenhando = false;
+    ctx.beginPath();
+    salvarAssinatura();
+}
+
+function desenhar(e) {
+    if (!desenhando) return;
+
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+
+    const rect = canvas.getBoundingClientRect();
+
+    ctx.lineTo(
+        e.clientX - rect.left,
+        e.clientY - rect.top
+    );
+
+    ctx.stroke();
+    ctx.beginPath();
+
+    ctx.moveTo(
+        e.clientX - rect.left,
+        e.clientY - rect.top
+    );
+}
+
+function limparAssinatura() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("assinatura").value = "";
+}
+
+function salvarAssinatura() {
+    document.getElementById("assinatura").value = canvas.toDataURL("image/png");
+}
+</script>
+
+{% endblock %}

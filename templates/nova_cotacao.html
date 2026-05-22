@@ -2,187 +2,399 @@
 {% block content %}
 
 <style>
-    .page-title { margin-bottom: 5px; color: #0d47a1; }
-    .subtitle { color: #666; margin-bottom: 25px; }
+    .page-title {
+        margin-bottom: 5px;
+        color: #0d47a1;
+        font-size: 28px;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 25px;
+        line-height: 1.5;
+    }
+
+    .form-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 22px;
+        padding: 26px;
+        box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    }
+
+    .section-box {
+        margin-bottom: 30px;
+    }
+
     .section-title {
-        margin-top: 0;
+        margin: 0 0 18px;
         color: #0d47a1;
         border-left: 5px solid #d32f2f;
-        padding-left: 10px;
+        padding-left: 12px;
+        font-size: 19px;
     }
+
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 18px;
     }
+
     .form-group label {
         display: block;
         font-weight: bold;
-        margin-bottom: 6px;
+        margin-bottom: 7px;
         color: #333;
+        font-size: 13px;
     }
+
     .form-group input,
     .form-group select,
     .form-group textarea {
         width: 100%;
-        padding: 11px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
+        padding: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
         outline: none;
         box-sizing: border-box;
         font-family: Arial, sans-serif;
-    }
-    .table-cotacao {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
         background: white;
     }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 3px rgba(13,71,161,0.10);
+    }
+
+    .items-wrapper {
+        overflow-x: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        background: white;
+    }
+
+    .table-cotacao {
+        width: 100%;
+        min-width: 1050px;
+        border-collapse: collapse;
+        background: white;
+    }
+
     .table-cotacao th {
-        background: #0d47a1;
-        color: white;
-        padding: 12px;
+        background: #eef4ff;
+        color: #163b73;
+        padding: 13px 12px;
         text-align: left;
+        white-space: nowrap;
+        font-size: 13px;
+        border-bottom: 1px solid #dbeafe;
     }
+
     .table-cotacao td {
-        padding: 10px;
+        padding: 12px;
         border-bottom: 1px solid #eee;
+        vertical-align: top;
     }
+
+    .table-cotacao tr:last-child td {
+        border-bottom: none;
+    }
+
     .table-cotacao input,
     .table-cotacao select {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 9px;
         box-sizing: border-box;
+        background: white;
     }
-    .actions {
-        margin-top: 25px;
+
+    .table-cotacao input:focus,
+    .table-cotacao select:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 3px rgba(13,71,161,0.08);
+    }
+
+    .small-note {
+        font-size: 11px;
+        color: #777;
+        margin-top: 5px;
+        line-height: 1.3;
+    }
+
+    .actions-area {
+        margin-top: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        padding-top: 22px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .actions-left,
+    .actions-right {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        align-items: center;
     }
-    .btn-secondary { background: #0d47a1; }
 
-    @media (max-width: 800px) {
-        .form-grid { grid-template-columns: 1fr; }
-        .table-cotacao { font-size: 13px; }
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 11px 16px;
+        border-radius: 11px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+
+    .btn-primary {
+        background: #0d47a1;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1565c0;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: #d32f2f;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #b71c1c;
+        transform: translateY(-1px);
+    }
+
+    .btn-light {
+        background: white;
+        color: #0d47a1;
+        border: 1px solid #cfe0ff;
+    }
+
+    .btn-light:hover {
+        background: #eef4ff;
+    }
+
+    .btn-remove {
+        width: 100%;
+        background: #fff1f1;
+        color: #d32f2f;
+        border: 1px solid #ffd1d1;
+        padding: 10px 12px;
+        border-radius: 9px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .btn-remove:hover {
+        background: #d32f2f;
+        color: white;
+    }
+
+    .top-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    @media (max-width: 900px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-area {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .actions-left,
+        .actions-right {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .btn-action {
+            width: 100%;
+        }
     }
 </style>
 
 <h1 class="page-title">🧾 Nova Cotação</h1>
-<p class="subtitle">Preencha os dados da empresa, os termos e os materiais ou serviços da cotação.</p>
+<p class="subtitle">
+    Preencha os dados da empresa, os termos da proposta e os materiais ou serviços da cotação.
+</p>
 
-<div class="card">
+<div class="top-actions">
+    <a href="/historico" class="btn-action btn-light">📄 Ver Histórico</a>
+    <a href="/" class="btn-action btn-light">⬅ Voltar ao Dashboard</a>
+</div>
+
+<div class="form-card">
 
 <form method="POST">
 
-    <h3 class="section-title">🏢 Dados da Empresa Cliente</h3>
+    <div class="section-box">
+        <h3 class="section-title">🏢 Dados da Empresa Cliente</h3>
 
-    <div class="form-grid">
-        <div class="form-group">
-            <label>Nome da Empresa</label>
-            <input type="text" name="cliente" required placeholder="Ex: Empresa ABC Lda">
-        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nome da Empresa</label>
+                <input type="text" name="cliente" required placeholder="Ex: Empresa ABC Lda">
+            </div>
 
-        <div class="form-group">
-            <label>Endereço</label>
-            <input type="text" name="endereco" required placeholder="Ex: Beira, Moçambique">
-        </div>
+            <div class="form-group">
+                <label>Endereço</label>
+                <input type="text" name="endereco" required placeholder="Ex: Beira, Moçambique">
+            </div>
 
-        <div class="form-group">
-            <label>NUIT</label>
-            <input type="text" name="nuit" required placeholder="Ex: 123456789">
-        </div>
+            <div class="form-group">
+                <label>NUIT</label>
+                <input type="text" name="nuit" required placeholder="Ex: 123456789">
+            </div>
 
-        <div class="form-group">
-            <label>Nome do Serviço</label>
-            <input type="text" name="servico" required placeholder="Ex: Instalação elétrica">
-        </div>
-    </div>
-
-    <br><br>
-
-    <h3 class="section-title">📋 Termos da Cotação</h3>
-
-    <div class="form-grid">
-        <div class="form-group">
-            <label>Condição de Pagamento</label>
-            <select name="pagamento" required>
-                <option value="">-- Selecionar --</option>
-                <option value="60/40">60% adjudicação + 40% entrega</option>
-                <option value="100">100% no ato da adjudicação</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Prazo de Entrega</label>
-            <input type="text" name="prazo" value="15 dias após aprovação da proposta" required>
-        </div>
-
-        <div class="form-group" style="grid-column: 1 / -1;">
-            <label>NB (Opcional)</label>
-            <textarea name="nb" placeholder="Ex: Observação importante para esta cotação..." style="min-height:90px; resize:vertical;"></textarea>
+            <div class="form-group">
+                <label>Nome do Serviço</label>
+                <input type="text" name="servico" required placeholder="Ex: Instalação elétrica">
+            </div>
         </div>
     </div>
 
-    <br><br>
+    <div class="section-box">
+        <h3 class="section-title">📋 Termos da Cotação</h3>
 
-    <h3 class="section-title">📦 Materiais / Serviços</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Condição de Pagamento</label>
+                <select name="pagamento" required>
+                    <option value="">-- Selecionar --</option>
+                    <option value="60/40">60% adjudicação + 40% entrega</option>
+                    <option value="100">100% no ato da adjudicação</option>
+                </select>
+            </div>
 
-    <table class="table-cotacao">
-        <thead>
-            <tr>
-                <th style="width:90px;">Qtd</th>
-                <th style="width:120px;">Unidade</th>
-                <th>Descrição</th>
-                <th style="width:160px;">Preço Unitário</th>
-                <th style="width:90px;">Ação</th>
-            </tr>
-        </thead>
+            <div class="form-group">
+                <label>Prazo de Entrega</label>
+                <input type="text" name="prazo" value="15 dias após aprovação da proposta" required>
+            </div>
 
-        <tbody id="itens">
-            <tr>
-                <td>
-                    <input type="number" name="quantidade[]" step="0.01" style="width:80px;">
-                </td>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>NB / Observação Opcional</label>
+                <textarea name="nb" placeholder="Ex: Observação importante para esta cotação..." style="min-height:90px; resize:vertical;"></textarea>
+            </div>
+        </div>
+    </div>
 
-                <td>
-                    <select name="unidade[]" style="width:100%;">
-                        <option>un</option>
-                        <option>m</option>
-                        <option>kg</option>
-                        <option>L</option>
-                        <option>m²</option>
-                        <option>m³</option>
-                        <option>cx</option>
-                    </select>
-                </td>
+    <div class="section-box">
+        <h3 class="section-title">📦 Materiais / Serviços</h3>
 
-                <td>
-                    <input type="text" name="descricao[]" style="width:100%;">
-                </td>
+        <div class="items-wrapper">
+            <table class="table-cotacao">
+                <thead>
+                    <tr>
+                        <th style="width:260px;">Produto do Estoque</th>
+                        <th style="width:95px;">Qtd</th>
+                        <th style="width:120px;">Unidade</th>
+                        <th>Descrição</th>
+                        <th style="width:160px;">Preço Unitário</th>
+                        <th style="width:115px;">Ação</th>
+                    </tr>
+                </thead>
 
-                <td>
-                    <input type="number" name="preco[]" step="0.01" style="width:130px;">
-                </td>
+                <tbody id="itens">
+                    <tr>
+                        <td>
+                            <select name="produto_id[]" class="produto-select" onchange="preencherProduto(this)">
+                                <option value="">-- Item manual / sem estoque --</option>
 
-                <td>
-                    <button type="button" class="btn red" onclick="removerLinha(this)">
-                        Remover
-                    </button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                                {% for p in produtos %}
+                                <option value="{{ p[0] }}"
+                                        data-nome="{{ p[1] }}"
+                                        data-unidade="{{ p[4] }}"
+                                        data-preco="{{ p[5] or 0 }}">
+                                    {{ p[1] }} | {{ p[2] }} | Estoque: {{ p[3] }} {{ p[4] }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="small-note">
+                                Escolha um produto para baixar automaticamente do estoque.
+                            </div>
+                        </td>
 
-    <div class="actions">
-        <button type="button" onclick="adicionarLinha()" class="btn btn-secondary">
-            ➕ Adicionar Item
-        </button>
+                        <td>
+                            <input type="number" name="quantidade[]" step="0.01" placeholder="0">
+                        </td>
 
-        <button type="submit" class="btn red">
-            💾 Gerar Cotação
-        </button>
+                        <td>
+                            <select name="unidade[]" class="unidade-item">
+                                <option>un</option>
+                                <option>par</option>
+                                <option>cx</option>
+                                <option>kit</option>
+                                <option>m</option>
+                                <option>m²</option>
+                                <option>m³</option>
+                                <option>kg</option>
+                                <option>g</option>
+                                <option>L</option>
+                                <option>ml</option>
+                                <option>rolo</option>
+                                <option>saco</option>
+                            </select>
+                        </td>
+
+                        <td>
+                            <input type="text" name="descricao[]" class="descricao-item" placeholder="Descrição do item ou serviço">
+                        </td>
+
+                        <td>
+                            <input type="number" name="preco[]" class="preco-item" step="0.01" placeholder="0.00">
+                        </td>
+
+                        <td>
+                            <button type="button" class="btn-remove" onclick="removerLinha(this)">
+                                Remover
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="actions-area">
+            <div class="actions-left">
+                <button type="button" onclick="adicionarLinha()" class="btn-action btn-light">
+                    ➕ Adicionar Item
+                </button>
+            </div>
+
+            <div class="actions-right">
+                <a href="/historico" class="btn-action btn-light">
+                    Cancelar
+                </a>
+
+                <button type="submit" class="btn-action btn-danger">
+                    💾 Gerar Cotação
+                </button>
+            </div>
+        </div>
     </div>
 
 </form>
@@ -190,37 +402,91 @@
 </div>
 
 <script>
+const opcoesProdutos = `
+    <option value="">-- Item manual / sem estoque --</option>
+    {% for p in produtos %}
+    <option value="{{ p[0] }}"
+            data-nome="{{ p[1] }}"
+            data-unidade="{{ p[4] }}"
+            data-preco="{{ p[5] or 0 }}">
+        {{ p[1] }} | {{ p[2] }} | Estoque: {{ p[3] }} {{ p[4] }}
+    </option>
+    {% endfor %}
+`;
+
+function preencherProduto(select) {
+    const linha = select.closest("tr");
+    const option = select.options[select.selectedIndex];
+
+    if (!select.value) {
+        return;
+    }
+
+    const nome = option.getAttribute("data-nome") || "";
+    const unidade = option.getAttribute("data-unidade") || "un";
+    const preco = option.getAttribute("data-preco") || "0";
+
+    const descricaoInput = linha.querySelector(".descricao-item");
+    const unidadeSelect = linha.querySelector(".unidade-item");
+    const precoInput = linha.querySelector(".preco-item");
+
+    descricaoInput.value = nome;
+    precoInput.value = preco;
+
+    for (let i = 0; i < unidadeSelect.options.length; i++) {
+        if (unidadeSelect.options[i].value === unidade || unidadeSelect.options[i].text === unidade) {
+            unidadeSelect.selectedIndex = i;
+            break;
+        }
+    }
+}
+
 function adicionarLinha() {
     const tabela = document.getElementById("itens");
     const novaLinha = document.createElement("tr");
 
     novaLinha.innerHTML = `
         <td>
-            <input type="number" name="quantidade[]" step="0.01" style="width:80px;">
+            <select name="produto_id[]" class="produto-select" onchange="preencherProduto(this)">
+                ${opcoesProdutos}
+            </select>
+            <div class="small-note">
+                Escolha um produto para baixar automaticamente do estoque.
+            </div>
         </td>
 
         <td>
-            <select name="unidade[]" style="width:100%;">
+            <input type="number" name="quantidade[]" step="0.01" placeholder="0">
+        </td>
+
+        <td>
+            <select name="unidade[]" class="unidade-item">
                 <option>un</option>
+                <option>par</option>
+                <option>cx</option>
+                <option>kit</option>
                 <option>m</option>
-                <option>kg</option>
-                <option>L</option>
                 <option>m²</option>
                 <option>m³</option>
-                <option>cx</option>
+                <option>kg</option>
+                <option>g</option>
+                <option>L</option>
+                <option>ml</option>
+                <option>rolo</option>
+                <option>saco</option>
             </select>
         </td>
 
         <td>
-            <input type="text" name="descricao[]" style="width:100%;">
+            <input type="text" name="descricao[]" class="descricao-item" placeholder="Descrição do item ou serviço">
         </td>
 
         <td>
-            <input type="number" name="preco[]" step="0.01" style="width:130px;">
+            <input type="number" name="preco[]" class="preco-item" step="0.01" placeholder="0.00">
         </td>
 
         <td>
-            <button type="button" class="btn red" onclick="removerLinha(this)">
+            <button type="button" class="btn-remove" onclick="removerLinha(this)">
                 Remover
             </button>
         </td>

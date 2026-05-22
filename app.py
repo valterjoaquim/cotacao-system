@@ -118,6 +118,53 @@ def init_db():
     )
     """)
 
+
+    # =========================
+    # TABELA PRODUTOS / ESTOQUE
+    # =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS produtos (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        categoria TEXT,
+        codigo TEXT,
+        quantidade REAL DEFAULT 0,
+        unidade TEXT,
+        preco_compra REAL DEFAULT 0
+    )
+    """)
+    cursor.execute("""
+ALTER TABLE produtos
+ADD COLUMN IF NOT EXISTS estoque_minimo REAL DEFAULT 5
+""")
+    cursor.execute("""
+    ALTER TABLE itens_cotacao
+    ADD COLUMN IF NOT EXISTS produto_id INTEGER REFERENCES produtos(id) ON DELETE SET NULL
+    """)
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
+    id SERIAL PRIMARY KEY,
+    produto_id INTEGER REFERENCES produtos(id) ON DELETE CASCADE,
+    funcionario_id INTEGER REFERENCES funcionarios(id) ON DELETE SET NULL,
+    tipo_movimento TEXT,
+    tipo_saida TEXT,
+    quantidade REAL DEFAULT 0,
+    responsavel TEXT,
+    servico_obra TEXT,
+    observacao TEXT,
+    data_movimento TEXT,
+    data_prevista_devolucao TEXT,
+    estado_devolucao TEXT DEFAULT 'Não aplicável',
+    confirmado TEXT DEFAULT 'Não'
+)
+""")
+
+
+    cursor.execute("""
+    ALTER TABLE movimentacoes_estoque
+    ADD COLUMN IF NOT EXISTS assinatura TEXT
+    """)
+
     cursor.execute("SELECT * FROM usuarios")
 
     if not cursor.fetchall():
@@ -196,6 +243,132 @@ def dashboard():
     )
 
 
+
+
+def baixar_estoque_por_produto_id(cursor, produto_id, quantidade, cotacao_id):
+    """
+    Baixa estoque usando o ID do produto selecionado na cotação.
+    É mais seguro do que procurar pelo nome.
+    """
+
+    if not produto_id:
+        return False
+
+    cursor.execute("""
+    SELECT id, nome, quantidade
+    FROM produtos
+    WHERE id=%s
+    LIMIT 1
+    """, (produto_id,))
+
+    produto = cursor.fetchone()
+
+    if not produto:
+        return False
+
+    quantidade_atual = float(produto[2] or 0)
+
+    if quantidade > quantidade_atual:
+        return False
+
+    data_movimento = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    cursor.execute("""
+    UPDATE produtos
+    SET quantidade = quantidade - %s
+    WHERE id=%s
+    """, (quantidade, produto_id))
+
+    cursor.execute("""
+    INSERT INTO movimentacoes_estoque (
+        produto_id,
+        tipo_movimento,
+        tipo_saida,
+        quantidade,
+        responsavel,
+        servico_obra,
+        observacao,
+        data_movimento,
+        estado_devolucao,
+        confirmado
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        produto_id,
+        "Saída",
+        "Consumo",
+        quantidade,
+        session.get("user", ""),
+        f"Cotação #{cotacao_id}",
+        "Baixa automática através da cotação",
+        data_movimento,
+        "Não aplicável",
+        "Sim"
+    ))
+
+    return True
+
+
+def baixar_estoque_por_cotacao(cursor, descricao, quantidade, cotacao_id):
+    """
+    Procura um produto no estoque com nome igual à descrição do item da cotação.
+    Se encontrar e tiver quantidade suficiente, baixa automaticamente o estoque
+    e regista a movimentação como saída por consumo.
+    """
+
+    cursor.execute("""
+    SELECT id, nome, quantidade
+    FROM produtos
+    WHERE LOWER(nome) = LOWER(%s)
+    LIMIT 1
+    """, (descricao,))
+
+    produto = cursor.fetchone()
+
+    if not produto:
+        return
+
+    produto_id = produto[0]
+    quantidade_atual = float(produto[2] or 0)
+
+    if quantidade > quantidade_atual:
+        return
+
+    data_movimento = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    cursor.execute("""
+    UPDATE produtos
+    SET quantidade = quantidade - %s
+    WHERE id=%s
+    """, (quantidade, produto_id))
+
+    cursor.execute("""
+    INSERT INTO movimentacoes_estoque (
+        produto_id,
+        tipo_movimento,
+        tipo_saida,
+        quantidade,
+        responsavel,
+        servico_obra,
+        observacao,
+        data_movimento,
+        estado_devolucao,
+        confirmado
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        produto_id,
+        "Saída",
+        "Consumo",
+        quantidade,
+        session.get("user", ""),
+        f"Cotação #{cotacao_id}",
+        "Baixa automática através da cotação",
+        data_movimento,
+        "Não aplicável",
+        "Sim"
+    ))
+
 @app.route('/nova-cotacao', methods=['GET', 'POST'])
 def nova_cotacao():
 
@@ -203,14 +376,15 @@ def nova_cotacao():
         return redirect('/login')
 
     if request.method == 'POST':
-        cliente = request.form.get('cliente', '')
-        endereco = request.form.get('endereco', '')
-        nuit = request.form.get('nuit', '')
-        servico = request.form.get('servico', '')
-        pagamento = request.form.get('pagamento', '')
-        prazo = request.form.get('prazo', '')
-        nb = request.form.get('nb', '')
+        cliente = request.form.get('cliente', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+        nuit = request.form.get('nuit', '').strip()
+        servico = request.form.get('servico', '').strip()
+        pagamento = request.form.get('pagamento', '').strip()
+        prazo = request.form.get('prazo', '').strip()
+        nb = request.form.get('nb', '').strip()
 
+        produto_ids = request.form.getlist('produto_id[]')
         quantidades = request.form.getlist('quantidade[]')
         unidades = request.form.getlist('unidade[]')
         descricoes = request.form.getlist('descricao[]')
@@ -219,24 +393,43 @@ def nova_cotacao():
         subtotal_geral = 0
         itens_validos = []
 
-        for i in range(len(descricoes)):
+        maior_tamanho = max(
+            len(produto_ids),
+            len(quantidades),
+            len(unidades),
+            len(descricoes),
+            len(precos)
+        )
 
-            descricao = descricoes[i].strip() if i < len(descricoes) else ""
-            quantidade = quantidades[i].strip() if i < len(quantidades) else ""
-            preco_txt = precos[i].strip() if i < len(precos) else ""
+        for i in range(maior_tamanho):
+            produto_id_txt = produto_ids[i].strip() if i < len(produto_ids) else ""
+            quantidade_txt = quantidades[i].strip() if i < len(quantidades) else ""
             unidade = unidades[i].strip() if i < len(unidades) else ""
+            descricao = descricoes[i].strip() if i < len(descricoes) else ""
+            preco_txt = precos[i].strip() if i < len(precos) else ""
 
-            if not descricao or not quantidade or not preco_txt:
+            if not quantidade_txt and not descricao and not preco_txt:
                 continue
 
-            qtd = float(quantidade)
-            preco = float(preco_txt)
-            subtotal_item = qtd * preco
+            if not quantidade_txt or not descricao or not preco_txt:
+                continue
 
+            try:
+                produto_id = int(produto_id_txt) if produto_id_txt else None
+                quantidade = float(quantidade_txt.replace(',', '.'))
+                preco = float(preco_txt.replace(',', '.'))
+            except ValueError:
+                continue
+
+            if quantidade <= 0 or preco < 0:
+                continue
+
+            subtotal_item = quantidade * preco
             subtotal_geral += subtotal_item
 
             itens_validos.append({
-                "quantidade": qtd,
+                "produto_id": produto_id,
+                "quantidade": quantidade,
                 "unidade": unidade,
                 "descricao": descricao,
                 "preco": preco,
@@ -252,42 +445,86 @@ def nova_cotacao():
         conn = conectar()
         cursor = conn.cursor()
 
-        cursor.execute("""
-        INSERT INTO cotacoes (
-            cliente, empresa, endereco, nuit,
-            pagamento, prazo, nb, subtotal, iva, total
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """, (
-            cliente, servico, endereco, nuit,
-            pagamento, prazo, nb,
-            subtotal_geral, iva, total
-        ))
-
-        cotacao_id = cursor.fetchone()[0]
-
-        for item in itens_validos:
+        try:
             cursor.execute("""
-            INSERT INTO itens_cotacao (
-                cotacao_id, quantidade, unidade, descricao, preco, subtotal
+            INSERT INTO cotacoes (
+                cliente, empresa, endereco, nuit,
+                pagamento, prazo, nb, subtotal, iva, total
             )
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             """, (
-                cotacao_id,
-                item["quantidade"],
-                item["unidade"],
-                item["descricao"],
-                item["preco"],
-                item["subtotal"]
+                cliente, servico, endereco, nuit,
+                pagamento, prazo, nb,
+                subtotal_geral, iva, total
             ))
 
-        conn.commit()
-        conn.close()
+            cotacao_id = cursor.fetchone()[0]
 
+            for item in itens_validos:
+                cursor.execute("""
+                INSERT INTO itens_cotacao (
+                    cotacao_id,
+                    produto_id,
+                    quantidade,
+                    unidade,
+                    descricao,
+                    preco,
+                    subtotal
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    cotacao_id,
+                    item["produto_id"],
+                    item["quantidade"],
+                    item["unidade"],
+                    item["descricao"],
+                    item["preco"],
+                    item["subtotal"]
+                ))
+
+                # Baixar estoque automaticamente
+                if item["produto_id"]:
+                    baixar_estoque_por_produto_id(
+                        cursor,
+                        item["produto_id"],
+                        item["quantidade"],
+                        cotacao_id
+                    )
+                else:
+                    baixar_estoque_por_cotacao(
+                        cursor,
+                        item["descricao"],
+                        item["quantidade"],
+                        cotacao_id
+                    )
+
+            conn.commit()
+
+        except Exception as erro:
+            conn.rollback()
+            conn.close()
+            return f"Erro ao salvar cotação: {erro}"
+
+        conn.close()
         return redirect('/historico')
 
-    return render_template("nova_cotacao.html")
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT id, nome, codigo, quantidade, unidade, preco_compra
+    FROM produtos
+    ORDER BY nome ASC
+    """)
+
+    produtos = cursor.fetchall()
+    conn.close()
+
+    return render_template(
+        "nova_cotacao.html",
+        produtos=produtos
+    )
 
 
 @app.route('/historico')
@@ -799,6 +1036,83 @@ def gerar_pdf(id):
     )
 
 
+@app.route('/produtos', methods=['GET', 'POST'])
+def produtos():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '').strip()
+        categoria = request.form.get('categoria', '').strip()
+        quantidade = float(request.form.get('quantidade') or 0)
+        unidade = request.form.get('unidade', '').strip()
+        preco_compra = float(request.form.get('preco_compra') or 0)
+        estoque_minimo = float(request.form.get('estoque_minimo') or 5)
+
+        if not nome:
+            conn.close()
+            return "Erro: informe o nome do produto."
+
+        cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM produtos")
+        proximo_id = cursor.fetchone()[0]
+
+        codigo = f"PROD-{proximo_id:04d}"
+
+        cursor.execute("""
+        INSERT INTO produtos (
+            nome,
+            categoria,
+            codigo,
+            quantidade,
+            unidade,
+            preco_compra,
+            estoque_minimo
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            nome,
+            categoria,
+            codigo,
+            quantidade,
+            unidade,
+            preco_compra,
+            estoque_minimo
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/produtos')
+
+    cursor.execute("""
+    SELECT
+        id,
+        nome,
+        categoria,
+        codigo,
+        quantidade,
+        unidade,
+        preco_compra,
+        estoque_minimo
+    FROM produtos
+    ORDER BY id DESC
+    """)
+
+    produtos = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "produtos.html",
+        produtos=produtos
+    )
+
+
 @app.route('/partilhar/<int:id>')
 def partilhar(id):
 
@@ -1001,9 +1315,10 @@ def editar_funcionario(id):
     conn.close()
 
     if not funcionario:
-        return "Cadastro não encontrado"
+        return "Funcionário não encontrado"
 
     return render_template("editar_funcionario.html", f=funcionario)
+
 
 @app.route('/apagar-funcionario/<int:id>')
 def apagar_funcionario(id):
@@ -1398,6 +1713,449 @@ def recibo_folha(id):
         as_attachment=True,
         download_name=f"RECIBO_SALARIAL_{id}.pdf"
     )
+@app.route('/editar-produto/<int:id>', methods=['GET', 'POST'])
+def editar_produto(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # =========================
+    # SALVAR ALTERAÇÕES
+    # =========================
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '')
+        categoria = request.form.get('categoria', '')
+        codigo = request.form.get('codigo', '')
+        quantidade = float(request.form.get('quantidade') or 0)
+        unidade = request.form.get('unidade', '')
+        preco_compra = float(request.form.get('preco_compra') or 0)
+
+        cursor.execute("""
+        UPDATE produtos
+        SET nome=%s,
+            categoria=%s,
+            codigo=%s,
+            quantidade=%s,
+            unidade=%s,
+            preco_compra=%s
+        WHERE id=%s
+        """, (
+            nome,
+            categoria,
+            codigo,
+            quantidade,
+            unidade,
+            preco_compra,
+            id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/produtos')
+
+    # =========================
+    # BUSCAR PRODUTO
+    # =========================
+    cursor.execute("""
+    SELECT *
+    FROM produtos
+    WHERE id=%s
+    """, (id,))
+
+    produto = cursor.fetchone()
+
+    conn.close()
+
+    if not produto:
+        return "Produto não encontrado"
+
+    return render_template(
+        "editar_produto.html",
+        p=produto
+    )
+@app.route('/apagar-produto/<int:id>')
+def apagar_produto(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    DELETE FROM produtos
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/produtos')
+@app.route('/entrada-estoque/<int:id>', methods=['GET', 'POST'])
+def entrada_estoque(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM produtos
+    WHERE id=%s
+    """, (id,))
+
+    produto = cursor.fetchone()
+
+    if not produto:
+        conn.close()
+        return "Produto não encontrado"
+
+    if request.method == 'POST':
+
+        quantidade = float(request.form.get('quantidade') or 0)
+        responsavel = request.form.get('responsavel', '')
+        observacao = request.form.get('observacao', '')
+        data_movimento = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+        if quantidade <= 0:
+            conn.close()
+            return "Erro: informe uma quantidade válida."
+
+        cursor.execute("""
+        UPDATE produtos
+        SET quantidade = quantidade + %s
+        WHERE id=%s
+        """, (quantidade, id))
+
+        cursor.execute("""
+        INSERT INTO movimentacoes_estoque (
+            produto_id,
+            tipo_movimento,
+            tipo_saida,
+            quantidade,
+            responsavel,
+            servico_obra,
+            observacao,
+            data_movimento,
+            data_prevista_devolucao,
+            estado_devolucao,
+            confirmado
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id,
+            "Entrada",
+            "Não aplicável",
+            quantidade,
+            responsavel,
+            "",
+            observacao,
+            data_movimento,
+            "",
+            "Não aplicável",
+            "Sim"
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/produtos')
+
+    conn.close()
+
+    return render_template(
+        "entrada_estoque.html",
+        produto=produto
+    )
+@app.route('/saida-estoque/<int:id>', methods=['GET', 'POST'])
+def saida_estoque(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM produtos
+    WHERE id=%s
+    """, (id,))
+
+    produto = cursor.fetchone()
+
+    if not produto:
+        conn.close()
+        return "Produto não encontrado"
+
+    cursor.execute("""
+    SELECT id, nome, cargo
+    FROM funcionarios
+    WHERE estado='Ativo'
+    ORDER BY nome ASC
+    """)
+
+    funcionarios = cursor.fetchall()
+
+    if request.method == 'POST':
+
+        funcionario_id = request.form.get('funcionario_id')
+        tipo_saida = request.form.get('tipo_saida', '')
+        quantidade = float(request.form.get('quantidade') or 0)
+        responsavel = request.form.get('responsavel', '')
+        servico_obra = request.form.get('servico_obra', '')
+        observacao = request.form.get('observacao', '')
+        confirmado = request.form.get('confirmado', 'Não')
+        data_prevista_devolucao = request.form.get('data_prevista_devolucao', '')
+
+        # =========================
+        # ASSINATURA DIGITAL
+        # =========================
+        assinatura = request.form.get('assinatura', '')
+
+        data_movimento = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+        quantidade_atual = float(produto[4] or 0)
+
+        if quantidade <= 0:
+            conn.close()
+            return "Erro: informe uma quantidade válida."
+
+        if quantidade > quantidade_atual:
+            conn.close()
+            return "Erro: quantidade insuficiente em estoque."
+
+        if not funcionario_id:
+            conn.close()
+            return "Erro: selecione quem levou o material."
+
+        estado_devolucao = "Não aplicável"
+
+        if tipo_saida == "Empréstimo":
+            estado_devolucao = "Pendente"
+
+        cursor.execute("""
+        UPDATE produtos
+        SET quantidade = quantidade - %s
+        WHERE id=%s
+        """, (quantidade, id))
+
+        cursor.execute("""
+        INSERT INTO movimentacoes_estoque (
+            produto_id,
+            funcionario_id,
+            tipo_movimento,
+            tipo_saida,
+            quantidade,
+            responsavel,
+            servico_obra,
+            observacao,
+            data_movimento,
+            data_prevista_devolucao,
+            estado_devolucao,
+            confirmado,
+            assinatura
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s
+        )
+        """, (
+            id,
+            funcionario_id,
+            "Saída",
+            tipo_saida,
+            quantidade,
+            responsavel,
+            servico_obra,
+            observacao,
+            data_movimento,
+            data_prevista_devolucao,
+            estado_devolucao,
+            confirmado,
+            assinatura
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/produtos')
+
+    conn.close()
+
+    return render_template(
+        "saida_estoque.html",
+        produto=produto,
+        funcionarios=funcionarios
+    )
+@app.route('/historico-estoque')
+def historico_estoque():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        movimentacoes_estoque.id,
+        produtos.nome,
+        produtos.codigo,
+        funcionarios.nome,
+        movimentacoes_estoque.tipo_movimento,
+        movimentacoes_estoque.tipo_saida,
+        movimentacoes_estoque.quantidade,
+        produtos.unidade,
+        movimentacoes_estoque.responsavel,
+        movimentacoes_estoque.servico_obra,
+        movimentacoes_estoque.data_movimento,
+        movimentacoes_estoque.data_prevista_devolucao,
+        movimentacoes_estoque.estado_devolucao,
+        movimentacoes_estoque.confirmado,
+        movimentacoes_estoque.observacao,
+        movimentacoes_estoque.assinatura
+    FROM movimentacoes_estoque
+    INNER JOIN produtos
+    ON movimentacoes_estoque.produto_id = produtos.id
+    LEFT JOIN funcionarios
+    ON movimentacoes_estoque.funcionario_id = funcionarios.id
+    ORDER BY movimentacoes_estoque.id DESC
+    """)
+
+    movimentacoes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "historico_estoque.html",
+        movimentacoes=movimentacoes
+    )
+@app.route('/ferramentas-pendentes')
+def ferramentas_pendentes():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        movimentacoes_estoque.id,
+        produtos.nome,
+        produtos.codigo,
+        funcionarios.nome,
+        funcionarios.cargo,
+        movimentacoes_estoque.quantidade,
+        produtos.unidade,
+        movimentacoes_estoque.data_movimento,
+        movimentacoes_estoque.data_prevista_devolucao,
+        movimentacoes_estoque.responsavel,
+        movimentacoes_estoque.servico_obra,
+        movimentacoes_estoque.observacao
+    FROM movimentacoes_estoque
+    INNER JOIN produtos
+    ON movimentacoes_estoque.produto_id = produtos.id
+    LEFT JOIN funcionarios
+    ON movimentacoes_estoque.funcionario_id = funcionarios.id
+    WHERE movimentacoes_estoque.tipo_movimento='Saída'
+    AND movimentacoes_estoque.tipo_saida='Empréstimo'
+    AND movimentacoes_estoque.estado_devolucao='Pendente'
+    ORDER BY movimentacoes_estoque.id DESC
+    """)
+
+    pendentes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "ferramentas_pendentes.html",
+        pendentes=pendentes
+    )
+@app.route('/devolver-ferramenta/<int:id>')
+def devolver_ferramenta(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT produto_id, quantidade
+    FROM movimentacoes_estoque
+    WHERE id=%s
+    AND tipo_movimento='Saída'
+    AND tipo_saida='Empréstimo'
+    AND estado_devolucao='Pendente'
+    """, (id,))
+
+    mov = cursor.fetchone()
+
+    if not mov:
+        conn.close()
+        return "Movimentação não encontrada ou já devolvida."
+
+    produto_id = mov[0]
+    quantidade = float(mov[1] or 0)
+
+    data_movimento = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    cursor.execute("""
+    UPDATE produtos
+    SET quantidade = quantidade + %s
+    WHERE id=%s
+    """, (quantidade, produto_id))
+
+    cursor.execute("""
+    UPDATE movimentacoes_estoque
+    SET estado_devolucao='Devolvido'
+    WHERE id=%s
+    """, (id,))
+
+    cursor.execute("""
+    INSERT INTO movimentacoes_estoque (
+        produto_id,
+        tipo_movimento,
+        tipo_saida,
+        quantidade,
+        responsavel,
+        servico_obra,
+        observacao,
+        data_movimento,
+        data_prevista_devolucao,
+        estado_devolucao,
+        confirmado
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        produto_id,
+        "Devolução",
+        "Empréstimo",
+        quantidade,
+        session.get("user", ""),
+        "",
+        "Ferramenta devolvida ao estoque",
+        data_movimento,
+        "",
+        "Devolvido",
+        "Sim"
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/ferramentas-pendentes')
+
+    
 
 @app.route('/logout')
 def logout():

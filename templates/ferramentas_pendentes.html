@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🧰 Ferramentas Pendentes</h1>
+
+<br>
+
+<a href="/produtos" class="btn">📦 Voltar ao Estoque</a>
+<a href="/historico-estoque" class="btn">📋 Histórico</a>
+
+<br><br>
+
+<div class="card">
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Ferramenta</th>
+        <th>Código</th>
+        <th>Funcionário</th>
+        <th>Cargo</th>
+        <th>Qtd</th>
+        <th>Data Saída</th>
+        <th>Previsto Devolução</th>
+        <th>Responsável</th>
+        <th>Serviço/Obra</th>
+        <th>Ação</th>
+    </tr>
+
+    {% for p in pendentes %}
+    <tr>
+        <td>#{{ p[0] }}</td>
+        <td>{{ p[1] }}</td>
+        <td>{{ p[2] }}</td>
+        <td>{{ p[3] or "-" }}</td>
+        <td>{{ p[4] or "-" }}</td>
+        <td>{{ p[5] }} {{ p[6] }}</td>
+        <td>{{ p[7] }}</td>
+        <td>{{ p[8] or "-" }}</td>
+        <td>{{ p[9] }}</td>
+        <td>{{ p[10] or "-" }}</td>
+        <td>
+            <a class="btn"
+               href="/devolver-ferramenta/{{ p[0] }}"
+               onclick="return confirm('Confirmar devolução desta ferramenta?')">
+                ✅ Devolver
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="11" style="text-align:center; padding:30px;">
+            Nenhuma ferramenta pendente de devolução.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

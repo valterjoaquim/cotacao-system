@@ -1,87 +1,318 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <title>Login - Sistema de Cotação</title>
+    <meta charset="UTF-8">
+    <title>Login - Sistema Empresarial</title>
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0d47a1, #ffffff);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+
+        *{
+            box-sizing:border-box;
         }
 
-        .box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            width: 340px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            text-align: center;
+        body{
+            margin:0;
+            font-family:Arial, sans-serif;
+
+            background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 280px),
+            linear-gradient(135deg,#082f73,#0d47a1,#1565c0);
+
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            overflow:hidden;
+            position:relative;
         }
 
-        .logo {
-            width: 80px;
-            margin-bottom: 10px;
+        /* =========================
+           FUNDO ANIMADO
+        ========================= */
+
+        .bg-animation{
+            position:fixed;
+            inset:0;
+            overflow:hidden;
+            z-index:0;
         }
 
-        h2 {
-            color: #0d47a1;
-            margin-bottom: 10px;
+        .bg-animation span{
+
+            position:absolute;
+            display:block;
+
+            border-radius:50%;
+
+            background:rgba(255,255,255,0.08);
+
+            animation:float 18s linear infinite;
+
+            bottom:-150px;
         }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+        .bg-animation span:nth-child(1){
+            width:220px;
+            height:220px;
+            left:10%;
+            animation-duration:22s;
         }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #d32f2f;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
+        .bg-animation span:nth-child(2){
+            width:160px;
+            height:160px;
+            left:35%;
+            animation-duration:18s;
+            animation-delay:2s;
         }
 
-        button:hover {
-            background: #b71c1c;
+        .bg-animation span:nth-child(3){
+            width:260px;
+            height:260px;
+            left:65%;
+            animation-duration:26s;
+            animation-delay:4s;
         }
 
-        .subtitle {
-            font-size: 12px;
-            color: gray;
-            margin-bottom: 20px;
+        .bg-animation span:nth-child(4){
+            width:140px;
+            height:140px;
+            left:85%;
+            animation-duration:16s;
+            animation-delay:1s;
         }
+
+        @keyframes float{
+
+            0%{
+                transform:
+                translateY(0)
+                rotate(0deg);
+
+                opacity:0;
+            }
+
+            10%{
+                opacity:1;
+            }
+
+            100%{
+                transform:
+                translateY(-1200px)
+                rotate(720deg);
+
+                opacity:0;
+            }
+
+        }
+
+        /* =========================
+           LOGIN
+        ========================= */
+
+        .login-container{
+            width:100%;
+            max-width:420px;
+            padding:20px;
+
+            position:relative;
+            z-index:2;
+        }
+
+        .login-card{
+
+            background:rgba(255,255,255,0.96);
+
+            backdrop-filter:blur(10px);
+
+            border-radius:24px;
+
+            padding:40px;
+
+            box-shadow:
+            0 20px 50px rgba(0,0,0,0.25);
+
+            position:relative;
+            overflow:hidden;
+        }
+
+        .login-card::before{
+            content:"";
+            position:absolute;
+            width:160px;
+            height:160px;
+            border-radius:50%;
+            background:rgba(13,71,161,0.08);
+            top:-60px;
+            right:-60px;
+        }
+
+        .login-card::after{
+            content:"";
+            position:absolute;
+            width:120px;
+            height:120px;
+            border-radius:50%;
+            background:rgba(211,47,47,0.08);
+            bottom:-50px;
+            left:-50px;
+        }
+
+        .top{
+            text-align:center;
+            position:relative;
+            z-index:2;
+        }
+
+        .logo{
+            width:88px;
+            height:88px;
+            object-fit:contain;
+            background:white;
+            border-radius:18px;
+            padding:10px;
+            box-shadow:0 8px 22px rgba(13,71,161,0.18);
+            margin-bottom:18px;
+        }
+
+        h2{
+            margin:0;
+            color:#0d47a1;
+            font-size:28px;
+        }
+
+        .subtitle{
+            color:#6b7280;
+            margin-top:8px;
+            margin-bottom:30px;
+            font-size:14px;
+        }
+
+        .form-group{
+            margin-bottom:18px;
+            position:relative;
+            z-index:2;
+        }
+
+        label{
+            display:block;
+            margin-bottom:7px;
+            font-size:13px;
+            font-weight:bold;
+            color:#374151;
+        }
+
+        input{
+            width:100%;
+            padding:14px;
+            border:1px solid #d1d5db;
+            border-radius:12px;
+            outline:none;
+            font-size:14px;
+            transition:0.2s;
+            background:white;
+        }
+
+        input:focus{
+            border-color:#0d47a1;
+            box-shadow:0 0 0 4px rgba(13,71,161,0.10);
+        }
+
+        button{
+            width:100%;
+            padding:14px;
+            background:#d32f2f;
+            color:white;
+            border:none;
+            border-radius:12px;
+            cursor:pointer;
+            font-weight:bold;
+            font-size:15px;
+            transition:0.2s;
+            margin-top:8px;
+            position:relative;
+            z-index:2;
+        }
+
+        button:hover{
+            background:#b71c1c;
+            transform:translateY(-1px);
+        }
+
+        .footer{
+            text-align:center;
+            margin-top:22px;
+            color:#9ca3af;
+            font-size:12px;
+            position:relative;
+            z-index:2;
+        }
+
+        @media(max-width:500px){
+
+            .login-card{
+                padding:30px 24px;
+                border-radius:20px;
+            }
+
+            h2{
+                font-size:24px;
+            }
+
+        }
+
     </style>
 
 </head>
 
 <body>
 
-<div class="box">
+<div class="bg-animation">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
 
-    <!-- LOGO -->
-    <img src="{{ url_for('static', filename='logo/logo.png') }}" class="logo">
+<div class="login-container">
 
-    <h2>🏢 Sistema de Cotação</h2>
-    <div class="subtitle">Acesso restrito</div>
+    <div class="login-card">
 
-    <form method="POST">
-        <input name="username" placeholder="Usuário" required>
-        <input name="password" type="password" placeholder="Senha" required>
+        <div class="top">
 
-        <button type="submit">Entrar</button>
-    </form>
+            <img src="{{ url_for('static', filename='logo/logo.png') }}" class="logo">
+
+            <h2>Sistema Empresarial</h2>
+
+            <div class="subtitle">
+                Gestão de Cotações, Estoque e RH
+            </div>
+
+        </div>
+
+        <form method="POST">
+
+            <div class="form-group">
+                <label>Usuário</label>
+                <input name="username" placeholder="Digite o usuário" required>
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <input name="password" type="password" placeholder="Digite a senha" required>
+            </div>
+
+            <button type="submit">
+                Entrar no Sistema
+            </button>
+
+        </form>
+
+        <div class="footer">
+            Sistema interno • acesso restrito
+        </div>
+
+    </div>
 
 </div>
 

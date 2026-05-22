@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>📋 Histórico de Estoque</h1>
+
+<br>
+
+<a href="/produtos" class="btn">📦 Voltar ao Estoque</a>
+
+<br><br>
+
+<div class="card">
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Produto</th>
+        <th>Código</th>
+        <th>Funcionário</th>
+        <th>Movimento</th>
+        <th>Tipo Saída</th>
+        <th>Qtd</th>
+        <th>Responsável</th>
+        <th>Serviço/Obra</th>
+        <th>Data</th>
+        <th>Devolução</th>
+        <th>Confirmado</th>
+        <th>Assinatura</th>
+    </tr>
+
+    {% for m in movimentacoes %}
+    <tr>
+
+        <td>#{{ m[0] }}</td>
+
+        <td>{{ m[1] }}</td>
+
+        <td>{{ m[2] }}</td>
+
+        <td>{{ m[3] or "-" }}</td>
+
+        <td>
+            {% if m[4] == "Entrada" %}
+                <span style="color:green; font-weight:bold;">
+                    {{ m[4] }}
+                </span>
+
+            {% elif m[4] == "Saída" %}
+                <span style="color:red; font-weight:bold;">
+                    {{ m[4] }}
+                </span>
+
+            {% else %}
+                <span style="color:blue; font-weight:bold;">
+                    {{ m[4] }}
+                </span>
+            {% endif %}
+        </td>
+
+        <td>{{ m[5] or "-" }}</td>
+
+        <td>
+            <strong>
+                {{ m[6] }} {{ m[7] }}
+            </strong>
+        </td>
+
+        <td>{{ m[8] }}</td>
+
+        <td>{{ m[9] or "-" }}</td>
+
+        <td>{{ m[10] }}</td>
+
+        <td>
+
+            {% if m[12] == "Pendente" %}
+                <span style="color:orange; font-weight:bold;">
+                    ⏳ Pendente
+                </span>
+
+            {% elif m[12] == "Devolvido" %}
+                <span style="color:green; font-weight:bold;">
+                    ✅ Devolvido
+                </span>
+
+            {% else %}
+                -
+            {% endif %}
+
+        </td>
+
+        <td>
+
+            {% if m[13] == "Sim" %}
+                <span style="color:green; font-weight:bold;">
+                    ✅ Sim
+                </span>
+            {% else %}
+                <span style="color:red; font-weight:bold;">
+                    ❌ Não
+                </span>
+            {% endif %}
+
+        </td>
+
+        <td>
+
+            {% if m[15] %}
+
+                <img
+                    src="{{ m[15] }}"
+                    width="140"
+                    style="
+                        border:1px solid #ccc;
+                        border-radius:10px;
+                        background:white;
+                        padding:5px;
+                    "
+                >
+
+            {% else %}
+
+                <span style="color:gray;">
+                    Sem assinatura
+                </span>
+
+            {% endif %}
+
+        </td>
+
+    </tr>
+
+    {% else %}
+
+    <tr>
+        <td colspan="13" style="text-align:center; padding:30px;">
+            Nenhuma movimentação registada.
+        </td>
+    </tr>
+
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}
