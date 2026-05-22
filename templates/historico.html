@@ -13,11 +13,13 @@
     .page-header h1 {
         margin: 0;
         color: #0d47a1;
+        font-size: 38px;
     }
 
     .page-header p {
         margin: 5px 0 0;
         color: #666;
+        font-size: 15px;
     }
 
     .table-wrapper {
@@ -33,25 +35,36 @@
     .cotacoes-table th {
         background: #0d47a1;
         color: white;
-        padding: 14px 12px;
+        padding: 16px 14px;
         text-align: left;
         font-size: 14px;
         white-space: nowrap;
     }
 
     .cotacoes-table td {
-        padding: 13px 12px;
+        padding: 18px 14px;
         border-bottom: 1px solid #eee;
         font-size: 14px;
         vertical-align: middle;
     }
 
     .cotacoes-table tr:hover {
-        background: #f5f8ff;
+        background: #f7faff;
+    }
+
+    .empresa {
+        font-weight: bold;
+        color: #111827;
+    }
+
+    .servico {
+        color: #374151;
+        line-height: 1.5;
+        max-width: 420px;
     }
 
     .badge {
-        padding: 5px 10px;
+        padding: 6px 12px;
         border-radius: 20px;
         font-size: 12px;
         font-weight: bold;
@@ -60,13 +73,13 @@
     }
 
     .badge-blue {
-        background: #e3f2fd;
+        background: #dbeafe;
         color: #0d47a1;
     }
 
     .badge-green {
-        background: #e8f5e9;
-        color: #2e7d32;
+        background: #dcfce7;
+        color: #166534;
     }
 
     .badge-gray {
@@ -78,43 +91,129 @@
         color: #d32f2f;
         font-weight: bold;
         white-space: nowrap;
+        font-size: 15px;
     }
 
-    .actions {
+    /* =========================
+       BOTÕES ORGANIZADOS
+    ========================= */
+
+    .actions-vertical {
         display: flex;
+        flex-direction: column;
         gap: 8px;
-        flex-wrap: wrap;
+        width: 250px;
     }
 
-    .btn-edit {
-        background: #f9a825;
+    .actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
 
-    .btn-delete {
+    .action-btn {
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 6px;
+
+        text-decoration: none;
+
+        padding: 11px 12px;
+
+        border-radius: 10px;
+
+        font-weight: bold;
+        font-size: 13px;
+
+        transition: 0.2s;
+
+        white-space: nowrap;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .action-btn.pdf {
+        background: #d32f2f;
+        color: white;
+    }
+
+    .action-btn.pdf:hover {
         background: #b71c1c;
+    }
+
+    .action-btn.share {
+        background: #0d47a1;
+        color: white;
+    }
+
+    .action-btn.share:hover {
+        background: #1565c0;
+    }
+
+    .action-btn.edit {
+        background: #f9a825;
+        color: white;
+    }
+
+    .action-btn.edit:hover {
+        background: #f57f17;
+    }
+
+    .action-btn.delete {
+        background: #eeeeee;
+        color: #b71c1c;
+        border: 1px solid #ffcdd2;
+    }
+
+    .action-btn.delete:hover {
+        background: #b71c1c;
+        color: white;
     }
 
     .empty-state {
         text-align: center;
-        padding: 40px;
+        padding: 50px;
         color: #777;
+        font-size: 15px;
     }
 
-    @media (max-width: 800px) {
+    @media (max-width: 1100px) {
+
         .page-header {
             flex-direction: column;
             align-items: flex-start;
         }
+
+        .actions-vertical {
+            width: 100%;
+        }
+
+        .actions-row {
+            grid-template-columns: 1fr;
+        }
+
     }
 </style>
 
 <div class="page-header">
+
     <div>
         <h1>📄 Histórico de Cotações</h1>
-        <p>Consulte, edite, baixe, partilhe ou apague as cotações geradas.</p>
+
+        <p>
+            Consulte, edite, baixe, partilhe ou apague as cotações geradas.
+        </p>
     </div>
 
-    <a class="btn" href="/nova-cotacao">➕ Nova Cotação</a>
+    <a class="btn" href="/nova-cotacao">
+        ➕ Nova Cotação
+    </a>
+
 </div>
 
 <div class="card">
@@ -124,6 +223,7 @@
         <table class="cotacoes-table">
 
             <thead>
+
                 <tr>
                     <th>ID</th>
                     <th>Empresa Cliente</th>
@@ -133,29 +233,59 @@
                     <th>Total</th>
                     <th>Ações</th>
                 </tr>
+
             </thead>
 
             <tbody>
-                {% for c in cotacoes %}
-                <tr>
-                    <td>#{{ c[0] }}</td>
-                    <td><strong>{{ c[1] }}</strong></td>
-                    <td>{{ c[2] }}</td>
 
-                    <td>
-                        {% if c[5] == "100" %}
-                            <span class="badge badge-green">100%</span>
-                        {% else %}
-                            <span class="badge badge-blue">60/40</span>
-                        {% endif %}
+                {% for c in cotacoes %}
+
+                <tr>
+
+                    <td>#{{ c[0] }}</td>
+
+                    <td class="empresa">
+                        {{ c[1] }}
+                    </td>
+
+                    <td class="servico">
+                        {{ c[2] }}
                     </td>
 
                     <td>
-                        {% if c[7] %}
-                            <span class="badge badge-green">Sim</span>
+
+                        {% if c[5] == "100" %}
+
+                            <span class="badge badge-green">
+                                100%
+                            </span>
+
                         {% else %}
-                            <span class="badge badge-gray">Não</span>
+
+                            <span class="badge badge-blue">
+                                60/40
+                            </span>
+
                         {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if c[7] %}
+
+                            <span class="badge badge-green">
+                                Sim
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge badge-gray">
+                                Não
+                            </span>
+
+                        {% endif %}
+
                     </td>
 
                     <td class="total">
@@ -163,28 +293,64 @@
                     </td>
 
                     <td>
-                        <div class="actions">
-                            <a class="btn red" href="/gerar-pdf/{{ c[0] }}">📄 PDF</a>
 
-                            <a class="btn" href="/partilhar/{{ c[0] }}">📤 Partilhar</a>
+                        <div class="actions-vertical">
 
-                            <a class="btn btn-edit" href="/editar-cotacao/{{ c[0] }}">✏️ Editar</a>
+                            <div class="actions-row">
 
-                            <a class="btn btn-delete"
-                               href="/apagar-cotacao/{{ c[0] }}"
-                               onclick="return confirm('Tens certeza que desejas apagar esta cotação? Esta ação não pode ser desfeita.')">
-                               🗑️ Apagar
-                            </a>
+                                <a class="action-btn pdf"
+                                   href="/gerar-pdf/{{ c[0] }}">
+
+                                    📄 PDF
+
+                                </a>
+
+                                <a class="action-btn share"
+                                   href="/partilhar/{{ c[0] }}">
+
+                                    📤 Partilhar
+
+                                </a>
+
+                            </div>
+
+                            <div class="actions-row">
+
+                                <a class="action-btn edit"
+                                   href="/editar-cotacao/{{ c[0] }}">
+
+                                    ✏️ Editar
+
+                                </a>
+
+                                <a class="action-btn delete"
+                                   href="/apagar-cotacao/{{ c[0] }}"
+                                   onclick="return confirm('Tens certeza que desejas apagar esta cotação? Esta ação não pode ser desfeita.')">
+
+                                    🗑️ Apagar
+
+                                </a>
+
+                            </div>
+
                         </div>
+
                     </td>
+
                 </tr>
+
                 {% else %}
+
                 <tr>
+
                     <td colspan="7" class="empty-state">
                         Nenhuma cotação foi criada ainda.
                     </td>
+
                 </tr>
+
                 {% endfor %}
+
             </tbody>
 
         </table>
