@@ -112,6 +112,16 @@
             transform: translateX(3px);
         }
 
+        .backup-link {
+            background: rgba(211,47,47,0.92);
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        .backup-link:hover {
+            background: var(--red-2) !important;
+        }
+
         .logout {
             background: rgba(211,47,47,0.88);
         }
@@ -312,9 +322,15 @@
             <a href="/sair-rh">🔒 Bloquear RH</a>
         {% endif %}
 
-        <div class="menu-title">Sistema</div>
-        <a href="/logout" class="logout">🚪 Terminar Sessão</a>
+       <div class="menu-title">Sistema</div>
 
+<a href="/backups" class="backup-link">
+    💾 Backups
+</a>
+
+<a href="/logout" class="logout">
+    🚪 Terminar Sessão
+</a>
     </aside>
 
     <main class="content">

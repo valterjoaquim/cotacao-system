@@ -33,7 +33,58 @@ def conectar():
         user="postgres",
         password="1234"
     )
+# =========================
+# BACKUP DO SISTEMA
+# =========================
+def fazer_backup():
 
+    import subprocess
+
+    # cria pasta backups
+    os.makedirs("backups", exist_ok=True)
+
+    # data/hora
+    data = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # nome do arquivo
+    nome_arquivo = f"backups/backup_{data}.sql"
+
+    # caminho do pg_dump
+    pg_dump = r"C:\Program Files\PostgreSQL\18\bin\pg_dump.exe"
+
+    # verifica se existe
+    if not os.path.exists(pg_dump):
+        raise Exception(
+            f"pg_dump não encontrado: {pg_dump}"
+        )
+
+    # senha PostgreSQL
+    env = os.environ.copy()
+    env["PGPASSWORD"] = "1234"
+
+    # comando backup
+    comando = [
+        pg_dump,
+        "-h", "localhost",
+        "-U", "postgres",
+        "-d", "cotacao_db",
+        "-f", nome_arquivo
+    ]
+
+    resultado = subprocess.run(
+        comando,
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    # erro
+    if resultado.returncode != 0:
+        raise Exception(
+            f"Erro ao fazer backup:\n{resultado.stderr}"
+        )
+
+    return nome_arquivo
 
 def rh_autorizado():
     return session.get("rh_autorizado") == True
@@ -2154,7 +2205,104 @@ def devolver_ferramenta(id):
     conn.close()
 
     return redirect('/ferramentas-pendentes')
+# =========================
+# BACKUP MANUAL
+# =========================
+@app.route('/backup')
+def backup():
 
+    if "user" not in session:
+        return redirect('/login')
+
+    arquivo = fazer_backup()
+
+    return send_file(
+        arquivo,
+        as_attachment=True
+    )
+@app.route('/backups')
+def listar_backups():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    os.makedirs("backups", exist_ok=True)
+
+    arquivos = []
+
+    for nome in os.listdir("backups"):
+        if nome.endswith(".sql"):
+            caminho = os.path.join("backups", nome)
+
+            arquivos.append({
+                "nome": nome,
+                "data": datetime.fromtimestamp(os.path.getmtime(caminho)).strftime("%d/%m/%Y %H:%M"),
+                "tamanho": round(os.path.getsize(caminho) / 1024, 2)
+            })
+
+    arquivos = sorted(arquivos, key=lambda x: x["nome"], reverse=True)
+
+    return render_template("backups.html", arquivos=arquivos)
+
+
+@app.route('/baixar-backup/<nome>')
+def baixar_backup(nome):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    caminho = os.path.join("backups", nome)
+
+    if not os.path.exists(caminho):
+        return "Backup não encontrado"
+
+    return send_file(caminho, as_attachment=True)
+@app.route('/restaurar-backup/<nome>')
+def restaurar_backup(nome):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    caminho = os.path.join("backups", nome)
+
+    if not os.path.exists(caminho):
+        return "Backup não encontrado"
+
+    import subprocess
+
+    psql = r"C:\Program Files\PostgreSQL\18\bin\psql.exe"
+
+    if not os.path.exists(psql):
+        return "psql.exe não encontrado"
+
+    env = os.environ.copy()
+    env["PGPASSWORD"] = "1234"
+
+    comando = [
+        psql,
+        "-h", "localhost",
+        "-U", "postgres",
+        "-d", "cotacao_system",
+        "-f", caminho
+    ]
+
+    resultado = subprocess.run(
+        comando,
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    if resultado.returncode != 0:
+        return f"""
+        <h2>Erro ao restaurar backup</h2>
+        <pre>{resultado.stderr}</pre>
+        """
+
+    return """
+    <h2>✅ Backup restaurado com sucesso</h2>
+    <a href='/backups'>Voltar</a>
+    """
     
 
 @app.route('/logout')
