@@ -3227,25 +3227,7 @@ def financeiro():
     LIMIT 6
     """)
     ultimas_facturas = cursor.fetchall()
-    # =========================
-# DADOS PARA GRÁFICOS
-# =========================
-    cursor.execute("""
-    SELECT estado, COALESCE(SUM(total), 0)
-    FROM facturas
-    GROUP BY estado
-    """)
-    grafico_estados = cursor.fetchall()
-
-    cursor.execute("""
-    SELECT data_factura, COALESCE(SUM(total), 0)
-    FROM facturas
-    WHERE estado='Pago'
-    GROUP BY data_factura
-    ORDER BY MIN(id) ASC
-    LIMIT 6
-    """)
-    grafico_receitas = cursor.fetchall()
+    
 
     conn.close()
 
