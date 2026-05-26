@@ -261,6 +261,10 @@ CREATE TABLE IF NOT EXISTS recibos (
 ALTER TABLE facturas
 ADD COLUMN IF NOT EXISTS recibo_gerado TEXT DEFAULT 'Não'
 """)
+    cursor.execute("""
+ALTER TABLE recibos
+ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'Dinheiro'
+""")
 
     cursor.execute("SELECT * FROM usuarios")
 
@@ -2636,7 +2640,7 @@ def pdf_factura(id):
     pdf.drawString(160, height - 50, "FACTURA")
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(160, height - 75, "TRANSPORTE VERTICAL MOZ")
+    pdf.drawString(160, height - 75, "TRANSPORTES VERTICAL.LDA")
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
@@ -2761,7 +2765,7 @@ def pdf_factura(id):
 # =========================
 # MARCAR FACTURA COMO PAGA
 # =========================
-@app.route('/marcar-pago/<int:id>')
+@app.route('/marcar-pago/<int:id>', methods=['POST'])
 def marcar_pago(id):
 
     if "user" not in session:
@@ -2803,6 +2807,10 @@ def marcar_pago(id):
     data_pagamento = datetime.now().strftime("%d/%m/%Y")
 
     # criar recibo
+    forma_pagamento = request.form.get(
+    "forma_pagamento",
+    "Dinheiro"
+      )
     cursor.execute("""
     INSERT INTO recibos (
         numero,
@@ -2810,7 +2818,8 @@ def marcar_pago(id):
         numero_factura,
         cliente,
         valor_pago,
-        data_pagamento
+        data_pagamento,
+        forma_pagamento
     )
     VALUES (%s, %s, %s, %s, %s, %s)
     """, (
@@ -2819,7 +2828,8 @@ def marcar_pago(id):
         factura[1],
         factura[2],
         factura[10],
-        data_pagamento
+        data_pagamento,
+        forma_pagamento
     ))
 
     conn.commit()
@@ -2893,6 +2903,116 @@ def pdf_recibo(id):
     def money(v):
         return f"{float(v or 0):,.2f} MT"
 
+    def numero_por_extenso(valor):
+        unidades = [
+            "", "um", "dois", "três", "quatro", "cinco",
+            "seis", "sete", "oito", "nove", "dez", "onze",
+            "doze", "treze", "catorze", "quinze", "dezasseis",
+            "dezassete", "dezoito", "dezanove"
+        ]
+
+        dezenas = [
+            "", "", "vinte", "trinta", "quarenta",
+            "cinquenta", "sessenta", "setenta", "oitenta", "noventa"
+        ]
+
+        centenas = [
+            "", "cento", "duzentos", "trezentos", "quatrocentos",
+            "quinhentos", "seiscentos", "setecentos",
+            "oitocentos", "novecentos"
+        ]
+
+        def extenso_ate_999(n):
+            n = int(n)
+
+            if n == 0:
+                return ""
+
+            if n == 100:
+                return "cem"
+
+            if n < 20:
+                return unidades[n]
+
+            if n < 100:
+                dez = n // 10
+                uni = n % 10
+
+                if uni == 0:
+                    return dezenas[dez]
+
+                return dezenas[dez] + " e " + unidades[uni]
+
+            cen = n // 100
+            resto = n % 100
+
+            if resto == 0:
+                return centenas[cen]
+
+            return centenas[cen] + " e " + extenso_ate_999(resto)
+
+        valor_int = int(float(valor or 0))
+
+        if valor_int == 0:
+            return "zero meticais"
+
+        partes = []
+
+        milhoes = valor_int // 1000000
+        resto = valor_int % 1000000
+
+        milhares = resto // 1000
+        centenas_resto = resto % 1000
+
+        if milhoes > 0:
+            if milhoes == 1:
+                partes.append("um milhão")
+            else:
+                partes.append(extenso_ate_999(milhoes) + " milhões")
+
+        if milhares > 0:
+            if milhares == 1:
+                partes.append("mil")
+            else:
+                partes.append(extenso_ate_999(milhares) + " mil")
+
+        if centenas_resto > 0:
+            partes.append(extenso_ate_999(centenas_resto))
+
+        texto = " e ".join(partes)
+
+        if valor_int == 1:
+            return texto + " metical"
+
+        return texto + " meticais"
+
+    def quebrar_texto(texto, limite):
+        palavras = str(texto or "").split()
+        linhas = []
+        linha = ""
+
+        for palavra in palavras:
+            if len(linha + " " + palavra) <= limite:
+                linha += " " + palavra
+            else:
+                if linha:
+                    linhas.append(linha.strip())
+                linha = palavra
+
+        if linha:
+            linhas.append(linha.strip())
+
+        return linhas
+
+    forma_pagamento = "Dinheiro"
+
+    try:
+        forma_pagamento = recibo[7] or "Dinheiro"
+    except:
+        forma_pagamento = "Dinheiro"
+
+    valor_extenso = numero_por_extenso(recibo[5])
+
     logo_path = "static/logo/logo.png"
 
     if os.path.exists(logo_path):
@@ -2911,7 +3031,7 @@ def pdf_recibo(id):
     pdf.drawString(160, height - 55, "RECIBO")
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(160, height - 78, "TRANSPORTE VERTICAL MOZ")
+    pdf.drawString(160, height - 78, "TRANSPORTES VERTICAL.LDA")
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
@@ -2927,7 +3047,7 @@ def pdf_recibo(id):
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
     pdf.drawRightString(555, height - 85, f"Data: {recibo[6]}")
-    pdf.drawRightString(555, height - 105, f"Factura paga: {recibo[3]}")
+    pdf.drawRightString(555, height - 105, f"Factura Nº: {recibo[3]}")
 
     pdf.setStrokeColor(azul)
     pdf.line(40, height - 160, 555, height - 160)
@@ -2935,54 +3055,59 @@ def pdf_recibo(id):
     y = height - 245
 
     pdf.setStrokeColor(cinza)
-    pdf.roundRect(40, y, 515, 90, 8, fill=0)
+    pdf.roundRect(40, y, 515, 95, 8, fill=0)
 
     pdf.setFillColor(azul)
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(55, y + 65, "DADOS DO PAGAMENTO")
+    pdf.drawString(55, y + 70, "DADOS DO PAGAMENTO")
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(55, y + 42, "Cliente:")
-    pdf.drawString(55, y + 22, "Factura Nº:")
-    pdf.drawString(300, y + 22, "Valor Pago:")
+    pdf.drawString(55, y + 48, "Recebemos do(s) Sr(s):")
+    pdf.drawString(55, y + 28, "Forma de pagamento:")
+    pdf.drawString(300, y + 28, "Valor Pago:")
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(125, y + 42, str(recibo[4] or ""))
-    pdf.drawString(135, y + 22, str(recibo[3] or ""))
+    pdf.drawString(205, y + 48, str(recibo[4] or ""))
+    pdf.drawString(180, y + 28, forma_pagamento)
 
     pdf.setFont("Helvetica-Bold", 11)
-    pdf.drawString(385, y + 22, money(recibo[5]))
+    pdf.drawString(385, y + 28, money(recibo[5]))
 
-    resumo_y = y - 105
+    resumo_y = y - 125
 
     pdf.setFillColor(azul_claro)
     pdf.setStrokeColor(azul)
-    pdf.roundRect(40, resumo_y, 515, 75, 8, fill=1)
+    pdf.roundRect(40, resumo_y, 515, 105, 8, fill=1)
+
+    texto_recibo = (
+        f"Recebemos do(s) Sr(s) {recibo[4]}, a importância de "
+        f"{money(recibo[5])} ({valor_extenso}), proveniente da Factura nº {recibo[3]}."
+    )
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(
-        60,
-        resumo_y + 45,
-        f"Recebemos de {recibo[4]} o valor de {money(recibo[5])} referente à factura {recibo[3]}."
-    )
+
+    linhas = quebrar_texto(texto_recibo, 95)
+    texto_y = resumo_y + 72
+
+    for linha in linhas[:4]:
+        pdf.drawString(60, texto_y, linha)
+        texto_y -= 16
 
     pdf.drawString(
         60,
-        resumo_y + 25,
-        "Este recibo confirma o pagamento da factura acima referida."
+        resumo_y + 18,
+        f"Forma de pagamento: {forma_pagamento}."
     )
 
-    assinatura_y = resumo_y - 100
+    assinatura_y = resumo_y - 90
 
     pdf.setStrokeColor(colors.black)
-    pdf.line(60, assinatura_y, 230, assinatura_y)
-    pdf.line(335, assinatura_y, 520, assinatura_y)
+    pdf.line(330, assinatura_y, 520, assinatura_y)
 
     pdf.setFont("Helvetica", 8)
-    pdf.drawCentredString(145, assinatura_y - 15, "Assinatura do Cliente")
-    pdf.drawCentredString(427, assinatura_y - 15, "Assinatura da Empresa")
+    pdf.drawCentredString(425, assinatura_y - 15, "Assinatura / Carimbo da Empresa")
 
     pdf.setFont("Helvetica", 7)
     pdf.setFillColor(colors.grey)

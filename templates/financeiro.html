@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -100,40 +99,6 @@
         z-index: 2;
     }
 
-    .charts-grid {
-        display: grid;
-        grid-template-columns: 0.9fr 1.1fr;
-        gap: 18px;
-        margin-bottom: 18px;
-    }
-
-    .chart-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 20px;
-        padding: 22px;
-        box-shadow: 0 10px 28px rgba(15,23,42,0.06);
-    }
-
-    .chart-card h3 {
-        margin: 0 0 5px;
-        color: #0d47a1;
-    }
-
-    .chart-card p {
-        margin: 0 0 18px;
-        color: #6b7280;
-        font-size: 14px;
-    }
-
-    .chart-box {
-        width: 100%;
-        min-height: 270px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
     .dashboard-grid {
         display: grid;
         grid-template-columns: 1.2fr 0.8fr;
@@ -201,7 +166,6 @@
             align-items: flex-start;
         }
 
-        .charts-grid,
         .dashboard-grid {
             grid-template-columns: 1fr;
         }
@@ -240,28 +204,6 @@
         <span>Total em Dívida</span>
         <h2>{{ "%.2f"|format(total_divida or 0) }} MT</h2>
         <small>{{ qtd_divida }} factura(s) em dívida</small>
-    </div>
-
-</section>
-
-<section class="charts-grid">
-
-    <div class="chart-card">
-        <h3>📊 Facturas por Estado</h3>
-        <p>Distribuição dos valores por estado da factura.</p>
-
-        <div class="chart-box">
-            <canvas id="graficoEstados"></canvas>
-        </div>
-    </div>
-
-    <div class="chart-card">
-        <h3>📈 Receitas Pagas</h3>
-        <p>Evolução das receitas recebidas nas últimas datas de pagamento.</p>
-
-        <div class="chart-box">
-            <canvas id="graficoReceitas"></canvas>
-        </div>
     </div>
 
 </section>
@@ -330,85 +272,5 @@
     </div>
 
 </section>
-
-<script>
-    const estadosLabels = [
-        {% for item in grafico_estados %}
-            "{{ item[0] }}",
-        {% endfor %}
-    ];
-
-    const estadosValores = [
-        {% for item in grafico_estados %}
-            {{ item[1] or 0 }},
-        {% endfor %}
-    ];
-
-    const receitasLabels = [
-        {% for item in grafico_receitas %}
-            "{{ item[0] }}",
-        {% endfor %}
-    ];
-
-    const receitasValores = [
-        {% for item in grafico_receitas %}
-            {{ item[1] or 0 }},
-        {% endfor %}
-    ];
-
-    new Chart(document.getElementById("graficoEstados"), {
-        type: "doughnut",
-        data: {
-            labels: estadosLabels,
-            datasets: [{
-                data: estadosValores,
-                backgroundColor: [
-                    "#1b5e20",
-                    "#0d47a1",
-                    "#d32f2f",
-                    "#f9a825"
-                ],
-                borderWidth: 2,
-                borderColor: "#ffffff"
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: "bottom"
-                }
-            }
-        }
-    });
-
-    new Chart(document.getElementById("graficoReceitas"), {
-        type: "bar",
-        data: {
-            labels: receitasLabels,
-            datasets: [{
-                label: "Receitas pagas",
-                data: receitasValores,
-                backgroundColor: "#0d47a1",
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-</script>
 
 {% endblock %}

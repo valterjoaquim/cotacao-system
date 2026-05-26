@@ -143,13 +143,19 @@
 
                 {% if f[11] != "Pago" %}
 
-                <a href="/marcar-pago/{{ f[0] }}"
-                   class="btn red"
-                   onclick="return confirm('Confirmar pagamento desta factura?')">
+                            <form method="POST" action="/marcar-pago/{{ f[0] }}" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <select name="forma_pagamento" required style="width:auto;">
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Outros">Outros</option>
+                </select>
 
-                   ✅ Pago
-
-                </a>
+                <button type="submit"
+                        class="btn red"
+                        onclick="return confirm('Confirmar pagamento desta factura?')">
+                    ✅ Pago
+                </button>
+            </form>
 
                 {% endif %}
 
