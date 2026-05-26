@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🧾 Nova Factura</h1>
+<p>Preencha os dados do cliente e os itens da factura.</p>
+
+<br>
+
+<div class="card">
+
+<form method="POST">
+
+    <h3>Dados do Cliente</h3>
+
+    <label>Cliente</label>
+    <input type="text" name="cliente" required>
+
+    <br><br>
+
+    <label>Morada</label>
+    <input type="text" name="morada">
+
+    <br><br>
+
+    <label>Celular</label>
+    <input type="text" name="celular">
+
+    <br><br>
+
+    <label>NUIT</label>
+    <input type="text" name="nuit">
+
+    <br><br>
+
+    <h3>Itens da Factura</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Qtd</th>
+                <th>Descrição</th>
+                <th>Preço Unitário</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+
+        <tbody id="itens">
+            <tr>
+                <td>
+                    <input type="number" name="quantidade[]" step="0.01" value="1">
+                </td>
+
+                <td>
+                    <input type="text" name="descricao[]" required>
+                </td>
+
+                <td>
+                    <input type="number" name="preco_unitario[]" step="0.01" required>
+                </td>
+
+                <td>
+                    <button type="button" class="btn red" onclick="removerLinha(this)">
+                        Remover
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <br>
+
+    <button type="button" class="btn" onclick="adicionarLinha()">
+        ➕ Adicionar Item
+    </button>
+
+    <br><br>
+
+    <button type="submit" class="btn red">
+        💾 Guardar Factura
+    </button>
+
+    <a href="/facturas" class="btn">
+        Cancelar
+    </a>
+
+</form>
+
+</div>
+
+<script>
+function adicionarLinha() {
+    const tabela = document.getElementById("itens");
+
+    const linha = document.createElement("tr");
+
+    linha.innerHTML = `
+        <td>
+            <input type="number" name="quantidade[]" step="0.01" value="1">
+        </td>
+
+        <td>
+            <input type="text" name="descricao[]" required>
+        </td>
+
+        <td>
+            <input type="number" name="preco_unitario[]" step="0.01" required>
+        </td>
+
+        <td>
+            <button type="button" class="btn red" onclick="removerLinha(this)">
+                Remover
+            </button>
+        </td>
+    `;
+
+    tabela.appendChild(linha);
+}
+
+function removerLinha(botao) {
+    const tabela = document.getElementById("itens");
+
+    if (tabela.rows.length > 1) {
+        botao.closest("tr").remove();
+    } else {
+        alert("A factura deve ter pelo menos um item.");
+    }
+}
+</script>
+
+{% endblock %}

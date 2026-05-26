@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+    <div>
+        <h1 style="margin:0; color:#0d47a1;">🧾 Recibos</h1>
+        <p style="margin:5px 0 0; color:#666;">
+            Recibos gerados automaticamente a partir das facturas pagas.
+        </p>
+    </div>
+
+    <a href="/facturas" class="btn">
+        📄 Ver Facturas
+    </a>
+</div>
+
+<div class="card">
+
+<table>
+    <tr>
+        <th>Nº Recibo</th>
+        <th>Nº Factura</th>
+        <th>Cliente</th>
+        <th>Valor Pago</th>
+        <th>Data Pagamento</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for r in recibos %}
+    <tr>
+        <td><strong>{{ r[1] }}</strong></td>
+        <td>{{ r[3] }}</td>
+        <td>{{ r[4] }}</td>
+        <td><strong>{{ "%.2f"|format(r[5] or 0) }} MT</strong></td>
+        <td>{{ r[6] }}</td>
+        <td>
+            <a href="/pdf-recibo/{{ r[0] }}" class="btn red">
+                📄 PDF
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6" style="text-align:center; padding:30px;">
+            Nenhum recibo gerado ainda.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

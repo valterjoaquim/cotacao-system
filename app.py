@@ -215,6 +215,52 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
     ALTER TABLE movimentacoes_estoque
     ADD COLUMN IF NOT EXISTS assinatura TEXT
     """)
+        # =========================
+# TABELAS DE FACTURAÇÃO
+# =========================
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS facturas (
+    id SERIAL PRIMARY KEY,
+    numero TEXT UNIQUE,
+    cliente TEXT,
+    morada TEXT,
+    celular TEXT,
+    nuit TEXT,
+    data_factura TEXT,
+    data_vencimento TEXT,
+    subtotal REAL DEFAULT 0,
+    iva REAL DEFAULT 0,
+    total REAL DEFAULT 0,
+    estado TEXT DEFAULT 'Em Aberto'
+)
+""")
+
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS itens_factura (
+    id SERIAL PRIMARY KEY,
+    factura_id INTEGER REFERENCES facturas(id) ON DELETE CASCADE,
+    quantidade REAL DEFAULT 1,
+    descricao TEXT,
+    preco_unitario REAL DEFAULT 0,
+    subtotal REAL DEFAULT 0
+)
+""")
+
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS recibos (
+    id SERIAL PRIMARY KEY,
+    numero TEXT UNIQUE,
+    factura_id INTEGER REFERENCES facturas(id) ON DELETE CASCADE,
+    numero_factura TEXT,
+    cliente TEXT,
+    valor_pago REAL DEFAULT 0,
+    data_pagamento TEXT
+)
+""")
+    cursor.execute("""
+ALTER TABLE facturas
+ADD COLUMN IF NOT EXISTS recibo_gerado TEXT DEFAULT 'Não'
+""")
 
     cursor.execute("SELECT * FROM usuarios")
 
@@ -283,15 +329,51 @@ def dashboard():
     LIMIT 5
     """)
     ultimas_cotacoes = cursor.fetchall()
+    # =========================
+# RESUMO FINANCEIRO
+# =========================
+    atualizar_facturas_vencidas()
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM facturas
+    WHERE estado='Pago'
+    """)
+    qtd_facturas_pagas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM facturas
+    WHERE estado='Em Aberto'
+    """)
+    qtd_facturas_abertas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM facturas
+    WHERE estado='Dívida'
+    """)
+    qtd_facturas_divida = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE estado='Dívida'
+    """)
+    total_divida_dashboard = cursor.fetchone()[0]
 
     conn.close()
 
     return render_template(
-        "dashboard.html",
-        total_cotacoes=total_cotacoes,
-        total_gerado=round(total_gerado, 2),
-        ultimas_cotacoes=ultimas_cotacoes
-    )
+    "dashboard.html",
+    total_cotacoes=total_cotacoes,
+    total_gerado=round(total_gerado, 2),
+    ultimas_cotacoes=ultimas_cotacoes,
+    qtd_facturas_pagas=qtd_facturas_pagas,
+    qtd_facturas_abertas=qtd_facturas_abertas,
+    qtd_facturas_divida=qtd_facturas_divida,
+    total_divida_dashboard=total_divida_dashboard
+)
 
 
 
@@ -2303,8 +2385,880 @@ def restaurar_backup(nome):
     <h2>✅ Backup restaurado com sucesso</h2>
     <a href='/backups'>Voltar</a>
     """
-    
+# =========================
+# ATUALIZAR FACTURAS VENCIDAS
+# =========================
+def atualizar_facturas_vencidas():
 
+    conn = conectar()
+    cursor = conn.cursor()
+
+    hoje = datetime.now()
+
+    cursor.execute("""
+    SELECT id, data_vencimento, estado
+    FROM facturas
+    WHERE estado='Em Aberto'
+    """)
+
+    facturas = cursor.fetchall()
+
+    for f in facturas:
+        factura_id = f[0]
+        data_vencimento = f[1]
+
+        try:
+            vencimento = datetime.strptime(data_vencimento, "%d/%m/%Y")
+        except:
+            continue
+
+        if hoje > vencimento:
+            cursor.execute("""
+            UPDATE facturas
+            SET estado='Dívida'
+            WHERE id=%s
+            """, (factura_id,))
+
+    conn.commit()
+    conn.close()
+
+
+# =========================
+# NOVA FACTURA
+# =========================
+@app.route('/nova-factura', methods=['GET', 'POST'])
+def nova_factura():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+
+        cliente = request.form.get('cliente', '').strip()
+        morada = request.form.get('morada', '').strip()
+        celular = request.form.get('celular', '').strip()
+        nuit = request.form.get('nuit', '').strip()
+
+        quantidades = request.form.getlist('quantidade[]')
+        descricoes = request.form.getlist('descricao[]')
+        precos = request.form.getlist('preco_unitario[]')
+
+        itens = []
+        subtotal_geral = 0
+
+        for i in range(len(descricoes)):
+
+            descricao = descricoes[i].strip()
+            qtd = float(quantidades[i] or 0)
+            preco = float(precos[i] or 0)
+
+            if not descricao or qtd <= 0:
+                continue
+
+            subtotal = qtd * preco
+            subtotal_geral += subtotal
+
+            itens.append({
+                "quantidade": qtd,
+                "descricao": descricao,
+                "preco": preco,
+                "subtotal": subtotal
+            })
+
+        if not itens:
+            return "Erro: adicione pelo menos um item válido."
+
+        iva = subtotal_geral * 0.16
+        total = subtotal_geral + iva
+
+        data_factura = datetime.now()
+        data_vencimento = data_factura.replace(day=data_factura.day) 
+
+        from datetime import timedelta
+        vencimento = data_factura + timedelta(days=30)
+
+        data_factura_txt = data_factura.strftime("%d/%m/%Y")
+        data_vencimento_txt = vencimento.strftime("%d/%m/%Y")
+
+        conn = conectar()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM facturas")
+        proximo_id = cursor.fetchone()[0]
+
+        numero = f"FT-{proximo_id:05d}"
+
+        cursor.execute("""
+        INSERT INTO facturas (
+            numero,
+            cliente,
+            morada,
+            celular,
+            nuit,
+            data_factura,
+            data_vencimento,
+            subtotal,
+            iva,
+            total,
+            estado
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+        """, (
+            numero,
+            cliente,
+            morada,
+            celular,
+            nuit,
+            data_factura_txt,
+            data_vencimento_txt,
+            subtotal_geral,
+            iva,
+            total,
+            "Em Aberto"
+        ))
+
+        factura_id = cursor.fetchone()[0]
+
+        for item in itens:
+            cursor.execute("""
+            INSERT INTO itens_factura (
+                factura_id,
+                quantidade,
+                descricao,
+                preco_unitario,
+                subtotal
+            )
+            VALUES (%s, %s, %s, %s, %s)
+            """, (
+                factura_id,
+                item["quantidade"],
+                item["descricao"],
+                item["preco"],
+                item["subtotal"]
+            ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/facturas')
+
+    return render_template("nova_factura.html")
+
+
+# =========================
+# LISTAR FACTURAS
+# =========================
+@app.route('/facturas')
+def facturas():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    atualizar_facturas_vencidas()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM facturas
+    ORDER BY id DESC
+    """)
+
+    facturas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "facturas.html",
+        facturas=facturas
+    )
+    # =========================
+# PDF DA FACTURA
+# =========================
+@app.route('/pdf-factura/<int:id>')
+def pdf_factura(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM facturas WHERE id=%s", (id,))
+    factura = cursor.fetchone()
+
+    cursor.execute("""
+    SELECT quantidade, descricao, preco_unitario, subtotal
+    FROM itens_factura
+    WHERE factura_id=%s
+    ORDER BY id ASC
+    """, (id,))
+
+    itens = cursor.fetchall()
+    conn.close()
+
+    if not factura:
+        return "Factura não encontrada"
+
+    os.makedirs("pdfs", exist_ok=True)
+
+    file_path = f"pdfs/factura_{id}.pdf"
+
+    pdf = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    azul = colors.HexColor("#0d47a1")
+    vermelho = colors.HexColor("#d32f2f")
+    cinza = colors.HexColor("#eeeeee")
+    azul_claro = colors.HexColor("#e3f2fd")
+
+    def money(v):
+        return f"{float(v or 0):,.2f} MT"
+
+    logo_path = "static/logo/logo.png"
+
+    if os.path.exists(logo_path):
+        pdf.drawImage(
+            logo_path,
+            40,
+            height - 105,
+            width=90,
+            height=60,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+
+    # Cabeçalho empresa
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawString(160, height - 50, "FACTURA")
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(160, height - 75, "TRANSPORTE VERTICAL MOZ")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(160, height - 92, "Av. Armando Tivane – Goto")
+    pdf.drawString(160, height - 107, "Cell: (+258) 878340748 / 847891715")
+    pdf.drawString(160, height - 122, "Email: transporteverticalmz@gmail.com")
+    pdf.drawString(160, height - 137, "NUIT: 401560671 | Beira - Moçambique")
+
+    # Número factura
+    pdf.setFillColor(vermelho)
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawRightString(555, height - 55, f"Nº {factura[1]}")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawRightString(555, height - 78, f"Data: {factura[6]}")
+    pdf.drawRightString(555, height - 95, f"Vencimento: {factura[7]}")
+    pdf.drawRightString(555, height - 112, f"Estado: {factura[11]}")
+
+    pdf.setStrokeColor(azul)
+    pdf.line(40, height - 155, 555, height - 155)
+
+    # Dados cliente
+    y_cliente = height - 245
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y_cliente, 515, 75, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(55, y_cliente + 55, "DADOS DO CLIENTE")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y_cliente + 35, "Cliente:")
+    pdf.drawString(55, y_cliente + 18, "Morada:")
+    pdf.drawString(320, y_cliente + 35, "Celular:")
+    pdf.drawString(320, y_cliente + 18, "NUIT:")
+
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(110, y_cliente + 35, str(factura[2] or ""))
+    pdf.drawString(110, y_cliente + 18, str(factura[3] or ""))
+    pdf.drawString(375, y_cliente + 35, str(factura[4] or ""))
+    pdf.drawString(375, y_cliente + 18, str(factura[5] or ""))
+
+    # Tabela
+    y = height - 300
+
+    pdf.setFillColor(azul)
+    pdf.rect(40, y, 515, 24, fill=1)
+
+    pdf.setFillColor(colors.white)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y + 8, "Qtd")
+    pdf.drawString(105, y + 8, "Descrição")
+    pdf.drawString(390, y + 8, "Preço Unit.")
+    pdf.drawString(485, y + 8, "Subtotal")
+
+    y -= 26
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+
+    for item in itens:
+        quantidade = item[0]
+        descricao = item[1]
+        preco = item[2]
+        subtotal = item[3]
+
+        if y < 140:
+            pdf.showPage()
+            y = height - 80
+
+        pdf.drawString(55, y, str(quantidade))
+        pdf.drawString(105, y, str(descricao)[:45])
+        pdf.drawRightString(455, y, money(preco))
+        pdf.drawRightString(545, y, money(subtotal))
+
+        pdf.setStrokeColor(cinza)
+        pdf.line(40, y - 7, 555, y - 7)
+
+        y -= 22
+
+    # Totais
+    total_y = y - 85
+
+    pdf.setFillColor(azul_claro)
+    pdf.setStrokeColor(azul)
+    pdf.roundRect(355, total_y, 200, 75, 6, fill=1)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 10)
+
+    pdf.drawString(370, total_y + 52, "Subtotal:")
+    pdf.drawRightString(540, total_y + 52, money(factura[8]))
+
+    pdf.drawString(370, total_y + 32, "IVA 16%:")
+    pdf.drawRightString(540, total_y + 32, money(factura[9]))
+
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(370, total_y + 10, "TOTAL:")
+    pdf.drawRightString(540, total_y + 10, money(factura[10]))
+
+    # Nota prazo
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(40, 85, "Condição: pagamento no prazo de 30 dias após emissão da factura.")
+    pdf.drawString(40, 70, "Após o vencimento, a factura passa para o estado de Dívida.")
+
+    # Rodapé
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawString(40, 35, "Documento gerado automaticamente pelo sistema.")
+
+    pdf.save()
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"FACTURA_{factura[1]}.pdf"
+    )
+# =========================
+# MARCAR FACTURA COMO PAGA
+# =========================
+@app.route('/marcar-pago/<int:id>')
+def marcar_pago(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM facturas
+    WHERE id=%s
+    """, (id,))
+
+    factura = cursor.fetchone()
+
+    if not factura:
+        conn.close()
+        return "Factura não encontrada"
+
+    # Atualiza estado
+    cursor.execute("""
+    UPDATE facturas
+    SET estado='Pago',
+        recibo_gerado='Sim'
+    WHERE id=%s
+    """, (id,))
+
+    # gerar número recibo
+    cursor.execute("""
+    SELECT COALESCE(MAX(id), 0) + 1
+    FROM recibos
+    """)
+
+    prox = cursor.fetchone()[0]
+
+    numero_recibo = f"RC-{prox:05d}"
+
+    data_pagamento = datetime.now().strftime("%d/%m/%Y")
+
+    # criar recibo
+    cursor.execute("""
+    INSERT INTO recibos (
+        numero,
+        factura_id,
+        numero_factura,
+        cliente,
+        valor_pago,
+        data_pagamento
+    )
+    VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        numero_recibo,
+        id,
+        factura[1],
+        factura[2],
+        factura[10],
+        data_pagamento
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/facturas')
+
+# =========================
+# LISTAR RECIBOS
+# =========================
+@app.route('/recibos')
+def recibos():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM recibos
+    ORDER BY id DESC
+    """)
+
+    recibos = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "recibos.html",
+        recibos=recibos
+    )
+
+# =========================
+# PDF DO RECIBO
+# =========================
+@app.route('/pdf-recibo/<int:id>')
+def pdf_recibo(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM recibos
+    WHERE id=%s
+    """, (id,))
+
+    recibo = cursor.fetchone()
+    conn.close()
+
+    if not recibo:
+        return "Recibo não encontrado"
+
+    os.makedirs("pdfs", exist_ok=True)
+
+    file_path = f"pdfs/recibo_{id}.pdf"
+
+    pdf = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    azul = colors.HexColor("#0d47a1")
+    vermelho = colors.HexColor("#d32f2f")
+    cinza = colors.HexColor("#eeeeee")
+    azul_claro = colors.HexColor("#e3f2fd")
+
+    def money(v):
+        return f"{float(v or 0):,.2f} MT"
+
+    logo_path = "static/logo/logo.png"
+
+    if os.path.exists(logo_path):
+        pdf.drawImage(
+            logo_path,
+            40,
+            height - 105,
+            width=90,
+            height=60,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 17)
+    pdf.drawString(160, height - 55, "RECIBO")
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(160, height - 78, "TRANSPORTE VERTICAL MOZ")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(160, height - 95, "Av. Armando Tivane – Goto")
+    pdf.drawString(160, height - 110, "Cell: (+258) 878340748 / 847891715")
+    pdf.drawString(160, height - 125, "Email: transporteverticalmz@gmail.com")
+    pdf.drawString(160, height - 140, "NUIT: 401560671 | Beira - Moçambique")
+
+    pdf.setFillColor(vermelho)
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawRightString(555, height - 60, f"Nº {recibo[1]}")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawRightString(555, height - 85, f"Data: {recibo[6]}")
+    pdf.drawRightString(555, height - 105, f"Factura paga: {recibo[3]}")
+
+    pdf.setStrokeColor(azul)
+    pdf.line(40, height - 160, 555, height - 160)
+
+    y = height - 245
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y, 515, 90, 8, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(55, y + 65, "DADOS DO PAGAMENTO")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(55, y + 42, "Cliente:")
+    pdf.drawString(55, y + 22, "Factura Nº:")
+    pdf.drawString(300, y + 22, "Valor Pago:")
+
+    pdf.setFont("Helvetica", 10)
+    pdf.drawString(125, y + 42, str(recibo[4] or ""))
+    pdf.drawString(135, y + 22, str(recibo[3] or ""))
+
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(385, y + 22, money(recibo[5]))
+
+    resumo_y = y - 105
+
+    pdf.setFillColor(azul_claro)
+    pdf.setStrokeColor(azul)
+    pdf.roundRect(40, resumo_y, 515, 75, 8, fill=1)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 10)
+    pdf.drawString(
+        60,
+        resumo_y + 45,
+        f"Recebemos de {recibo[4]} o valor de {money(recibo[5])} referente à factura {recibo[3]}."
+    )
+
+    pdf.drawString(
+        60,
+        resumo_y + 25,
+        "Este recibo confirma o pagamento da factura acima referida."
+    )
+
+    assinatura_y = resumo_y - 100
+
+    pdf.setStrokeColor(colors.black)
+    pdf.line(60, assinatura_y, 230, assinatura_y)
+    pdf.line(335, assinatura_y, 520, assinatura_y)
+
+    pdf.setFont("Helvetica", 8)
+    pdf.drawCentredString(145, assinatura_y - 15, "Assinatura do Cliente")
+    pdf.drawCentredString(427, assinatura_y - 15, "Assinatura da Empresa")
+
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawString(40, 35, "Documento gerado automaticamente pelo sistema.")
+
+    pdf.save()
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"RECIBO_{recibo[1]}.pdf"
+    )
+    # =========================
+# EXTRATO FINANCEIRO
+# =========================
+@app.route('/extrato')
+def extrato():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    atualizar_facturas_vencidas()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # totais
+    cursor.execute("""
+    SELECT COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE estado='Pago'
+    """)
+    total_pago = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE estado='Em Aberto'
+    """)
+    total_aberto = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE estado='Dívida'
+    """)
+    total_divida = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM facturas
+    """)
+    total_facturas = cursor.fetchone()[0]
+
+    # lista
+    cursor.execute("""
+    SELECT numero,
+           cliente,
+           data_factura,
+           data_vencimento,
+           total,
+           estado
+    FROM facturas
+    ORDER BY id DESC
+    """)
+
+    facturas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "extrato.html",
+        total_pago=total_pago,
+        total_aberto=total_aberto,
+        total_divida=total_divida,
+        total_facturas=total_facturas,
+        facturas=facturas
+    )
+
+# =========================
+# GERAR FACTURA A PARTIR DA COTAÇÃO
+# =========================
+@app.route('/gerar-factura-cotacao/<int:id>')
+def gerar_factura_cotacao(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # buscar cotação
+    cursor.execute("""
+    SELECT *
+    FROM cotacoes
+    WHERE id=%s
+    """, (id,))
+
+    cotacao = cursor.fetchone()
+
+    if not cotacao:
+        conn.close()
+        return "Cotação não encontrada"
+
+    # buscar itens da cotação
+    cursor.execute("""
+    SELECT quantidade, descricao, preco, subtotal
+    FROM itens_cotacao
+    WHERE cotacao_id=%s
+    ORDER BY id ASC
+    """, (id,))
+
+    itens = cursor.fetchall()
+
+    if not itens:
+        conn.close()
+        return "Esta cotação não tem itens."
+
+    from datetime import timedelta
+
+    data_factura = datetime.now()
+    vencimento = data_factura + timedelta(days=30)
+
+    data_factura_txt = data_factura.strftime("%d/%m/%Y")
+    data_vencimento_txt = vencimento.strftime("%d/%m/%Y")
+
+    # próximo número da factura
+    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM facturas")
+    proximo_id = cursor.fetchone()[0]
+
+    numero = f"FT-{proximo_id:05d}"
+
+    # dados vindos da cotação
+    cliente = cotacao[1]
+    morada = cotacao[3]
+    celular = ""
+    nuit = cotacao[4]
+    subtotal = float(cotacao[8] or 0)
+    iva = float(cotacao[9] or 0)
+    total = float(cotacao[10] or 0)
+
+    try:
+        cursor.execute("""
+        INSERT INTO facturas (
+            numero,
+            cliente,
+            morada,
+            celular,
+            nuit,
+            data_factura,
+            data_vencimento,
+            subtotal,
+            iva,
+            total,
+            estado
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+        """, (
+            numero,
+            cliente,
+            morada,
+            celular,
+            nuit,
+            data_factura_txt,
+            data_vencimento_txt,
+            subtotal,
+            iva,
+            total,
+            "Em Aberto"
+        ))
+
+        factura_id = cursor.fetchone()[0]
+
+        for item in itens:
+            quantidade = item[0]
+            descricao = item[1]
+            preco = item[2]
+            subtotal_item = item[3]
+
+            cursor.execute("""
+            INSERT INTO itens_factura (
+                factura_id,
+                quantidade,
+                descricao,
+                preco_unitario,
+                subtotal
+            )
+            VALUES (%s, %s, %s, %s, %s)
+            """, (
+                factura_id,
+                quantidade,
+                descricao,
+                preco,
+                subtotal_item
+            ))
+
+        conn.commit()
+
+    except Exception as erro:
+        conn.rollback()
+        conn.close()
+        return f"Erro ao gerar factura da cotação: {erro}"
+
+    conn.close()
+
+    return redirect('/facturas')
+
+@app.route('/financeiro')
+def financeiro():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    atualizar_facturas_vencidas()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COALESCE(SUM(total), 0) FROM facturas WHERE estado='Pago'")
+    total_pago = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COALESCE(SUM(total), 0) FROM facturas WHERE estado='Em Aberto'")
+    total_aberto = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COALESCE(SUM(total), 0) FROM facturas WHERE estado='Dívida'")
+    total_divida = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM facturas WHERE estado='Pago'")
+    qtd_pagas = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM facturas WHERE estado='Em Aberto'")
+    qtd_abertas = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM facturas WHERE estado='Dívida'")
+    qtd_divida = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT numero, cliente, total, estado, data_factura
+    FROM facturas
+    ORDER BY id DESC
+    LIMIT 6
+    """)
+    ultimas_facturas = cursor.fetchall()
+    # =========================
+# DADOS PARA GRÁFICOS
+# =========================
+    cursor.execute("""
+    SELECT estado, COALESCE(SUM(total), 0)
+    FROM facturas
+    GROUP BY estado
+    """)
+    grafico_estados = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT data_factura, COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE estado='Pago'
+    GROUP BY data_factura
+    ORDER BY MIN(id) ASC
+    LIMIT 6
+    """)
+    grafico_receitas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "financeiro.html",
+        total_pago=total_pago,
+        total_aberto=total_aberto,
+        total_divida=total_divida,
+        qtd_pagas=qtd_pagas,
+        qtd_abertas=qtd_abertas,
+        qtd_divida=qtd_divida,
+        ultimas_facturas=ultimas_facturas
+    )
 @app.route('/logout')
 def logout():
 

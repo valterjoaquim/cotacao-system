@@ -183,6 +183,14 @@
         background: linear-gradient(135deg, rgba(13,71,161,0.07), rgba(211,47,47,0.07));
     }
 
+    .module.financeiro::before {
+        background: #1b5e20;
+    }
+
+    .module.financeiro::after {
+        background: rgba(27,94,32,0.08);
+    }
+
     .module:hover {
         transform: translateY(-5px);
         box-shadow: 0 20px 42px rgba(15,23,42,0.10);
@@ -218,6 +226,11 @@
     .module.rh .module-icon {
         background: linear-gradient(135deg, #eef4ff, #fff1f1);
         color: #0d47a1;
+    }
+
+    .module.financeiro .module-icon {
+        background: #e8f5e9;
+        color: #1b5e20;
     }
 
     .module-icon svg {
@@ -280,6 +293,16 @@
 
     .module.rh .module-actions .btn.light {
         color: #0d47a1;
+    }
+
+    .module.financeiro .module-actions .btn.light {
+        color: #1b5e20;
+        border-color: #c8e6c9;
+    }
+
+    .module.financeiro .module-actions .btn.finance {
+        background: #1b5e20;
+        color: white;
     }
 
     .bottom {
@@ -358,17 +381,15 @@
         <h2>Bem-vindo, {{ session['user'] }} 👋</h2>
         <p>
             Este é o painel principal do sistema. A partir daqui pode aceder rapidamente
-            às cotações, ao estoque e à área de recursos humanos.
+            às cotações, facturação, estoque e recursos humanos.
         </p>
 
         <div class="welcome-actions">
             <a href="/nova-cotacao" class="btn">➕ Nova Cotação</a>
-            <a href="/produtos" class="btn light">📦 Ver Estoque</a>
-            <a href="/acesso-rh" class="btn light">🔐 Acessar RH</a>
-            <!-- BOTÃO BACKUP -->
-            <a href="/backup" class="btn red">
-                 💾 Fazer Backup
-             </a>
+            <a href="/nova-factura" class="btn light">🧾 Nova Factura</a>
+            <a href="/facturas" class="btn light">📄 Facturas</a>
+            <a href="/produtos" class="btn light">📦 Estoque</a>
+            <a href="/backups" class="btn light">💾 Backups</a>
         </div>
     </section>
 
@@ -381,6 +402,15 @@
         <div class="stat red-line">
             <span>Total Gerado</span>
             <h3>{{ "%.2f"|format(total_gerado or 0) }} MT</h3>
+        </div>
+                <div class="stat blue-line">
+            <span>Facturas em Aberto</span>
+            <h3>{{ qtd_facturas_abertas }}</h3>
+        </div>
+
+        <div class="stat red-line">
+            <span>Facturas em Dívida</span>
+            <h3>{{ qtd_facturas_divida }}</h3>
         </div>
     </section>
 
@@ -411,6 +441,37 @@
             <div class="module-actions">
                 <a href="/nova-cotacao" class="btn full">➕ Nova Cotação</a>
                 <a href="/historico" class="btn light full">📄 Ver Histórico</a>
+            </div>
+        </div>
+
+
+        <div class="module financeiro">
+            <div class="module-header">
+                <div class="module-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="M8 8h8"></path>
+                        <path d="M8 12h8"></path>
+                        <path d="M8 16h4"></path>
+                    </svg>
+                </div>
+
+                <div class="module-title">
+                    <h3>Facturação</h3>
+                    <span>Facturas, recibos e extrato</span>
+                </div>
+            </div>
+
+            <p>
+                Crie facturas, controle pagamentos, acompanhe dívidas
+                e gere recibos automaticamente.
+            </p>
+
+            <div class="module-actions">
+                <a href="/nova-factura" class="btn finance">🧾 Nova Factura</a>
+                <a href="/facturas" class="btn light">📄 Facturas</a>
+                <a href="/recibos" class="btn light">🧾 Recibos</a>
+                <a href="/financeiro" class="btn light">📊 Financeiro</a>
             </div>
         </div>
 
@@ -504,7 +565,30 @@
 
             <div class="mini-info">
                 <div>
+                    <span>Facturas em Aberto</span>
+                    <span class="ok">{{ qtd_facturas_abertas }}</span>
+                </div>
+
+                <div>
+                    <span>Facturas em Dívida</span>
+                    <span style="color:#d32f2f; font-weight:bold;">
+                        {{ qtd_facturas_divida }}
+                    </span>
+                </div>
+
+                <div>
+                    <span>Total em Dívida</span>
+                    <span style="color:#d32f2f; font-weight:bold;">
+                        {{ "%.2f"|format(total_divida_dashboard or 0) }} MT
+                    </span>
+                </div>
+                <div>
                     <span>Cotações</span>
+                    <span class="ok">Ativo</span>
+                </div>
+
+                <div>
+                    <span>Facturação</span>
                     <span class="ok">Ativo</span>
                 </div>
 
@@ -516,6 +600,11 @@
                 <div>
                     <span>RH</span>
                     <span class="ok">Protegido</span>
+                </div>
+
+                <div>
+                    <span>Backups</span>
+                    <span class="ok">Ativo</span>
                 </div>
             </div>
         </div>

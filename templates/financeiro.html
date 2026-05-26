@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .finance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .finance-header h1 {
+        margin: 0;
+        color: #0d47a1;
+    }
+
+    .finance-header p {
+        margin: 5px 0 0;
+        color: #666;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .finance-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 18px;
+        margin-bottom: 25px;
+    }
+
+    .finance-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .finance-card::after {
+        content: "";
+        position: absolute;
+        width: 95px;
+        height: 95px;
+        border-radius: 50%;
+        right: -28px;
+        top: -28px;
+        opacity: 0.12;
+    }
+
+    .finance-card.pago {
+        border-left: 5px solid #1b5e20;
+    }
+
+    .finance-card.pago::after {
+        background: #1b5e20;
+    }
+
+    .finance-card.aberto {
+        border-left: 5px solid #0d47a1;
+    }
+
+    .finance-card.aberto::after {
+        background: #0d47a1;
+    }
+
+    .finance-card.divida {
+        border-left: 5px solid #d32f2f;
+    }
+
+    .finance-card.divida::after {
+        background: #d32f2f;
+    }
+
+    .finance-card span {
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .finance-card h2 {
+        margin: 12px 0 6px;
+        font-size: 30px;
+        color: #111827;
+        position: relative;
+        z-index: 2;
+    }
+
+    .finance-card small {
+        color: #6b7280;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .chart-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+    }
+
+    .chart-card h3 {
+        margin: 0 0 5px;
+        color: #0d47a1;
+    }
+
+    .chart-card p {
+        margin: 0 0 18px;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .chart-box {
+        width: 100%;
+        min-height: 270px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+    }
+
+    .status-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .status-item {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .status-item strong {
+        color: #111827;
+    }
+
+    .status-item span {
+        font-weight: bold;
+    }
+
+    .green { color: #1b5e20; }
+    .blue { color: #0d47a1; }
+    .red { color: #d32f2f; }
+
+    .badge {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .badge-pago {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-aberto {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-divida {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    @media(max-width: 950px) {
+        .finance-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .charts-grid,
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="finance-header">
+    <div>
+        <h1>📊 Painel Financeiro</h1>
+        <p>Resumo financeiro das facturas, pagamentos e dívidas.</p>
+    </div>
+
+    <div class="quick-actions">
+        <a href="/nova-factura" class="btn">🧾 Nova Factura</a>
+        <a href="/facturas" class="btn light">📄 Facturas</a>
+        <a href="/recibos" class="btn light">🧾 Recibos</a>
+        <a href="/extrato" class="btn red">📊 Extrato</a>
+    </div>
+</div>
+
+<section class="finance-stats">
+
+    <div class="finance-card pago">
+        <span>Total Recebido</span>
+        <h2>{{ "%.2f"|format(total_pago or 0) }} MT</h2>
+        <small>{{ qtd_pagas }} factura(s) paga(s)</small>
+    </div>
+
+    <div class="finance-card aberto">
+        <span>Total Em Aberto</span>
+        <h2>{{ "%.2f"|format(total_aberto or 0) }} MT</h2>
+        <small>{{ qtd_abertas }} factura(s) em aberto</small>
+    </div>
+
+    <div class="finance-card divida">
+        <span>Total em Dívida</span>
+        <h2>{{ "%.2f"|format(total_divida or 0) }} MT</h2>
+        <small>{{ qtd_divida }} factura(s) em dívida</small>
+    </div>
+
+</section>
+
+<section class="charts-grid">
+
+    <div class="chart-card">
+        <h3>📊 Facturas por Estado</h3>
+        <p>Distribuição dos valores por estado da factura.</p>
+
+        <div class="chart-box">
+            <canvas id="graficoEstados"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>📈 Receitas Pagas</h3>
+        <p>Evolução das receitas recebidas nas últimas datas de pagamento.</p>
+
+        <div class="chart-box">
+            <canvas id="graficoReceitas"></canvas>
+        </div>
+    </div>
+
+</section>
+
+<section class="dashboard-grid">
+
+    <div class="card">
+        <h3 style="margin-top:0; color:#0d47a1;">Últimas Facturas</h3>
+
+        <div class="table-wrapper">
+            <table>
+                <tr>
+                    <th>Nº</th>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                </tr>
+
+                {% for f in ultimas_facturas %}
+                <tr>
+                    <td><strong>{{ f[0] }}</strong></td>
+                    <td>{{ f[1] }}</td>
+                    <td>{{ f[4] }}</td>
+                    <td><strong>{{ "%.2f"|format(f[2] or 0) }} MT</strong></td>
+                    <td>
+                        {% if f[3] == "Pago" %}
+                            <span class="badge badge-pago">Pago</span>
+                        {% elif f[3] == "Dívida" %}
+                            <span class="badge badge-divida">Dívida</span>
+                        {% else %}
+                            <span class="badge badge-aberto">Em Aberto</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:30px;">
+                        Nenhuma factura encontrada.
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; color:#0d47a1;">Estado Financeiro</h3>
+
+        <div class="status-list">
+            <div class="status-item">
+                <strong>Facturas Pagas</strong>
+                <span class="green">{{ qtd_pagas }}</span>
+            </div>
+
+            <div class="status-item">
+                <strong>Em Aberto</strong>
+                <span class="blue">{{ qtd_abertas }}</span>
+            </div>
+
+            <div class="status-item">
+                <strong>Em Dívida</strong>
+                <span class="red">{{ qtd_divida }}</span>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+<script>
+    const estadosLabels = [
+        {% for item in grafico_estados %}
+            "{{ item[0] }}",
+        {% endfor %}
+    ];
+
+    const estadosValores = [
+        {% for item in grafico_estados %}
+            {{ item[1] or 0 }},
+        {% endfor %}
+    ];
+
+    const receitasLabels = [
+        {% for item in grafico_receitas %}
+            "{{ item[0] }}",
+        {% endfor %}
+    ];
+
+    const receitasValores = [
+        {% for item in grafico_receitas %}
+            {{ item[1] or 0 }},
+        {% endfor %}
+    ];
+
+    new Chart(document.getElementById("graficoEstados"), {
+        type: "doughnut",
+        data: {
+            labels: estadosLabels,
+            datasets: [{
+                data: estadosValores,
+                backgroundColor: [
+                    "#1b5e20",
+                    "#0d47a1",
+                    "#d32f2f",
+                    "#f9a825"
+                ],
+                borderWidth: 2,
+                borderColor: "#ffffff"
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: "bottom"
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById("graficoReceitas"), {
+        type: "bar",
+        data: {
+            labels: receitasLabels,
+            datasets: [{
+                label: "Receitas pagas",
+                data: receitasValores,
+                backgroundColor: "#0d47a1",
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

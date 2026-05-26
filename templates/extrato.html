@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .header-page {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        gap: 15px;
+    }
+
+    .header-page h1 {
+        margin: 0;
+        color: #0d47a1;
+    }
+
+    .header-page p {
+        margin: 5px 0 0;
+        color: #666;
+    }
+
+    .cards-resumo {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-bottom: 25px;
+    }
+
+    .resumo-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+    }
+
+    .resumo-card span {
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .resumo-card h2 {
+        margin: 10px 0 0;
+        font-size: 28px;
+    }
+
+    .pago h2 { color: #1b5e20; }
+    .aberto h2 { color: #0d47a1; }
+    .divida h2 { color: #d32f2f; }
+    .total h2 { color: #111827; }
+
+    .estado {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .estado-pago {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .estado-aberto {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .estado-divida {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .valor {
+        font-weight: bold;
+        color: #0d47a1;
+        white-space: nowrap;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+</style>
+
+<div class="header-page">
+    <div>
+        <h1>📊 Extrato Financeiro</h1>
+        <p>Resumo geral das facturas pagas, em aberto e em dívida.</p>
+    </div>
+
+    <a href="/facturas" class="btn">
+        📄 Ver Facturas
+    </a>
+</div>
+
+<div class="cards-resumo">
+
+    <div class="resumo-card pago">
+        <span>Total Recebido</span>
+        <h2>{{ "%.2f"|format(total_pago or 0) }} MT</h2>
+    </div>
+
+    <div class="resumo-card aberto">
+        <span>Total Em Aberto</span>
+        <h2>{{ "%.2f"|format(total_aberto or 0) }} MT</h2>
+    </div>
+
+    <div class="resumo-card divida">
+        <span>Total em Dívida</span>
+        <h2>{{ "%.2f"|format(total_divida or 0) }} MT</h2>
+    </div>
+
+    <div class="resumo-card total">
+        <span>Total de Facturas</span>
+        <h2>{{ total_facturas }}</h2>
+    </div>
+
+</div>
+
+<div class="card">
+
+    <h3 style="margin-top:0; color:#0d47a1;">Lista Financeira</h3>
+
+    <div class="table-wrapper">
+
+        <table>
+            <tr>
+                <th>Nº Factura</th>
+                <th>Cliente</th>
+                <th>Data</th>
+                <th>Vencimento</th>
+                <th>Total</th>
+                <th>Estado</th>
+            </tr>
+
+            {% for f in facturas %}
+            <tr>
+                <td><strong>{{ f[0] }}</strong></td>
+                <td>{{ f[1] }}</td>
+                <td>{{ f[2] }}</td>
+                <td>{{ f[3] }}</td>
+                <td class="valor">{{ "%.2f"|format(f[4] or 0) }} MT</td>
+                <td>
+                    {% if f[5] == "Pago" %}
+                        <span class="estado estado-pago">Pago</span>
+                    {% elif f[5] == "Dívida" %}
+                        <span class="estado estado-divida">Dívida</span>
+                    {% else %}
+                        <span class="estado estado-aberto">Em Aberto</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align:center; padding:30px;">
+                    Nenhuma factura encontrada.
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
