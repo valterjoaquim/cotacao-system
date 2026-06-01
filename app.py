@@ -89,6 +89,14 @@ def fazer_backup():
 def rh_autorizado():
     return session.get("rh_autorizado") == True
 
+def tem_permissao(*tipos_permitidos):
+    tipo = session.get("tipo")
+
+    if tipo == "admin":
+        return True
+
+    return tipo in tipos_permitidos
+
 
 def init_db():
     conn = conectar()
@@ -511,6 +519,8 @@ def nova_cotacao():
 
     if "user" not in session:
         return redirect('/login')
+    if not tem_permissao("comercial"):
+        return "Acesso negado"
 
     if request.method == 'POST':
         cliente = request.form.get('cliente', '').strip()
@@ -864,9 +874,14 @@ def gerar_pdf(id):
     cursor.execute("SELECT * FROM cotacoes WHERE id=%s", (id,))
     c = cursor.fetchone()
 
-    cursor.execute("SELECT * FROM itens_cotacao WHERE cotacao_id=%s", (id,))
-    itens = cursor.fetchall()
+    cursor.execute("""
+    SELECT *
+    FROM itens_cotacao
+    WHERE cotacao_id=%s
+    ORDER BY id ASC
+    """, (id,))
 
+    itens = cursor.fetchall()
     conn.close()
 
     if not c:
@@ -881,8 +896,10 @@ def gerar_pdf(id):
         linha = ""
 
         for palavra in palavras:
-            if len(linha + " " + palavra) <= limite:
-                linha += " " + palavra
+            teste = (linha + " " + palavra).strip()
+
+            if len(teste) <= limite:
+                linha = teste
             else:
                 if linha:
                     linhas.append(linha.strip())
@@ -903,6 +920,8 @@ def gerar_pdf(id):
     azul = colors.HexColor("#0d47a1")
     azul_claro = colors.HexColor("#e3f2fd")
     cinza = colors.HexColor("#eeeeee")
+    vermelho = colors.HexColor("#d32f2f")
+
     data = datetime.now().strftime("%d/%m/%Y")
 
     def desenhar_logos_parceiros():
@@ -917,250 +936,263 @@ def gerar_pdf(id):
             if arquivo.lower().endswith((".png", ".jpg", ".jpeg")):
                 logos.append(os.path.join(pasta, arquivo))
 
+        logos = logos[:10]
+
         if not logos:
             return
 
-        logos = logos[:10]
-
-        logo_w = 34
-        logo_h = 20
-        gap = 10
+        logo_w = 28
+        logo_h = 18
+        gap = 8
 
         total_w = (len(logos) * logo_w) + ((len(logos) - 1) * gap)
-        x_inicio = (width - total_w) / 2
-        y_logo = 28
+
+        x = (width - total_w) / 2
+        y = 34
 
         for logo in logos:
             pdf.drawImage(
                 logo,
-                x_inicio,
-                y_logo,
+                x,
+                y,
                 width=logo_w,
                 height=logo_h,
                 preserveAspectRatio=True,
                 mask='auto'
             )
-            x_inicio += logo_w + gap
+
+            x += logo_w + gap
 
     def desenhar_rodape():
         desenhar_logos_parceiros()
-        pdf.setFont("Helvetica", 7)
+
+        pdf.setFont("Helvetica", 6)
         pdf.setFillColor(colors.grey)
-        pdf.drawString(40, 15, f"Documento gerado automaticamente | {data}")
+        pdf.drawString(40, 18, f"Documento gerado automaticamente | {data}")
 
     def desenhar_cabecalho_tabela(y_pos):
         pdf.setFillColor(azul)
-        pdf.rect(40, y_pos, 515, 24, fill=1)
+        pdf.rect(40, y_pos, 515, 20, fill=1)
 
         pdf.setFillColor(colors.white)
-        pdf.setFont("Helvetica-Bold", 9)
+        pdf.setFont("Helvetica-Bold", 8)
 
-        pdf.drawString(50, y_pos + 8, "Qtd")
-        pdf.drawString(95, y_pos + 8, "Un")
-        pdf.drawString(145, y_pos + 8, "DESCRIÇÃO")
-        pdf.drawString(400, y_pos + 8, "P.Unit")
-        pdf.drawString(485, y_pos + 8, "Subtotal")
+        pdf.drawString(48, y_pos + 7, "Qtd")
+        pdf.drawString(82, y_pos + 7, "Un")
+        pdf.drawString(122, y_pos + 7, "DESCRIÇÃO")
+        pdf.drawString(405, y_pos + 7, "P.Unit")
+        pdf.drawString(488, y_pos + 7, "Subtotal")
 
         pdf.setFillColor(colors.black)
-        pdf.setFont("Helvetica", 9)
 
-        return y_pos - 24
+        return y_pos - 18
 
+    # =========================
+    # CABEÇALHO
+    # =========================
     logo_path = "static/logo/logo.png"
 
     if os.path.exists(logo_path):
         pdf.drawImage(
             logo_path,
-            25,
-            height - 145,
-            width=125,
-            height=85,
+            35,
+            height - 92,
+            width=85,
+            height=55,
             preserveAspectRatio=True,
             mask='auto'
         )
 
-    pdf.setFont("Helvetica-Bold", 14)
+    # Título centralizado e bem ajustado
+    pdf.setFont("Helvetica-Bold", 12)
     pdf.setFillColor(azul)
-    pdf.drawString(220, height - 55, f"COTAÇÃO N° {id:05d}/2026")
+    pdf.drawCentredString(
+        width / 2,
+        height - 42,
+        f"COTAÇÃO N° {id:05d}/2026"
+    )
 
     pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
+    pdf.setFont("Helvetica", 8)
 
-    x_info = 270
-    pdf.drawString(x_info, height - 82, "Av. Armando Tivane – Goto")
-    pdf.drawString(x_info, height - 97, "Cell: (+258) 878340748 / 847891715")
-    pdf.drawString(x_info, height - 112, "Email: transporteverticalmz@gmail.com")
-    pdf.drawString(x_info, height - 127, "NUIT: 401560671")
-    pdf.drawString(x_info, height - 142, "Beira - Moçambique")
+    x_info = 370
+    pdf.drawString(x_info, height - 58, "Av. Armando Tivane – Goto")
+    pdf.drawString(x_info, height - 71, "Cell: (+258) 878340748 / 847891715")
+    pdf.drawString(x_info, height - 84, "Email: transporteverticalmz@gmail.com")
+    pdf.drawString(x_info, height - 97, "NUIT: 401560671 | Beira - Moçambique")
 
     pdf.setStrokeColor(azul)
-    pdf.line(40, height - 160, 555, height - 160)
+    pdf.line(40, height - 112, 555, height - 112)
 
-    box_cliente_y = height - 275
+    # =========================
+    # DADOS DO CLIENTE
+    # =========================
+    box_y = height - 205
 
     pdf.setStrokeColor(cinza)
-    pdf.roundRect(40, box_cliente_y - 20, 515, 115, 8, fill=0)
+    pdf.roundRect(40, box_y, 515, 78, 6, fill=0)
 
-    pdf.setFont("Helvetica-Bold", 10)
+    pdf.setFont("Helvetica-Bold", 8)
     pdf.setFillColor(azul)
-    pdf.drawString(55, box_cliente_y + 75, "DADOS DA EMPRESA CLIENTE")
+    pdf.drawString(52, box_y + 61, "DADOS DA EMPRESA CLIENTE")
 
     pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica-Bold", 10)
+    pdf.setFont("Helvetica-Bold", 8)
 
-    pdf.drawString(55, box_cliente_y + 52, "Empresa:")
-    pdf.drawString(55, box_cliente_y + 35, "Endereço:")
-    pdf.drawString(55, box_cliente_y + 18, "NUIT:")
-    pdf.drawString(300, box_cliente_y + 18, "Serviço:")
+    pdf.drawString(52, box_y + 44, "Empresa:")
+    pdf.drawString(52, box_y + 28, "Endereço:")
+    pdf.drawString(52, box_y + 12, "NUIT:")
+    pdf.drawString(300, box_y + 44, "Serviço:")
 
-    pdf.setFont("Helvetica", 10)
+    pdf.setFont("Helvetica", 8)
 
-    pdf.drawString(125, box_cliente_y + 52, str(c[1] or ""))
-    pdf.drawString(125, box_cliente_y + 35, str(c[3] or ""))
-    pdf.drawString(125, box_cliente_y + 18, str(c[4] or ""))
+    pdf.drawString(105, box_y + 44, str(c[1] or "")[:34])
+    pdf.drawString(110, box_y + 28, str(c[3] or "")[:34])
+    pdf.drawString(105, box_y + 12, str(c[4] or "")[:25])
 
-    servico_linhas = quebrar_texto(c[2], 28)
-    servico_y = box_cliente_y + 18
+    # Serviço com mais espaço e até 4 linhas
+    servico_linhas = quebrar_texto(c[2], 40)
+    servico_y = box_y + 44
 
-    for linha in servico_linhas[:3]:
-        pdf.drawString(355, servico_y, linha)
-        servico_y -= 12
+    for linha in servico_linhas[:4]:
+        pdf.drawString(350, servico_y, linha)
+        servico_y -= 10
 
-    pdf.setFont("Helvetica-Bold", 9)
-    pdf.drawString(430, box_cliente_y + 75, "Data:")
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.setFillColor(azul)
+    pdf.drawRightString(545, box_y + 61, f"Data: {data}")
 
-    pdf.setFont("Helvetica", 9)
-    pdf.drawString(465, box_cliente_y + 75, data)
-
-    y = height - 335
+    # =========================
+    # TABELA
+    # =========================
+    y = height - 235
     y = desenhar_cabecalho_tabela(y)
 
+    limite_inferior_tabela = 260
+
     for item in itens:
+        desc_linhas = quebrar_texto(item[4], 55)
+        linhas_usadas = desc_linhas[:2]
 
-        desc_linhas = quebrar_texto(item[4], 38)
-        linhas_usadas = desc_linhas[:3]
-        altura_item = max(24, len(linhas_usadas) * 12 + 10)
+        altura_item = max(18, len(linhas_usadas) * 9 + 6)
 
-        if y - altura_item < 110:
-            desenhar_rodape()
-            pdf.showPage()
-            y = height - 80
-            y = desenhar_cabecalho_tabela(y)
+        if y - altura_item < limite_inferior_tabela:
+            pdf.setFont("Helvetica-Oblique", 7)
+            pdf.setFillColor(vermelho)
+            pdf.drawString(
+                45,
+                y,
+                "Nota: existem mais itens nesta cotação. Reduza descrições ou itens para manter uma página."
+            )
+            pdf.setFillColor(colors.black)
+            break
 
         pdf.setStrokeColor(cinza)
-        pdf.line(40, y - 5, 555, y - 5)
+        pdf.line(40, y - 4, 555, y - 4)
 
+        pdf.setFont("Helvetica", 8)
         pdf.setFillColor(colors.black)
-        pdf.setFont("Helvetica", 9)
 
-        pdf.drawString(50, y, str(item[2]))
-        pdf.drawString(95, y, str(item[3] or ""))
+        pdf.drawString(48, y, str(item[2]))
+        pdf.drawString(82, y, str(item[3] or "")[:8])
 
         desc_y = y
 
         for linha_desc in linhas_usadas:
-            pdf.drawString(145, desc_y, linha_desc)
-            desc_y -= 12
+            pdf.drawString(122, desc_y, linha_desc)
+            desc_y -= 9
 
-        pdf.drawRightString(455, y, f"{safe(item[5]):,.2f} MT")
-        pdf.drawRightString(545, y, f"{safe(item[6]):,.2f} MT")
+        pdf.drawRightString(462, y, f"{safe(item[5]):,.2f}")
+        pdf.drawRightString(545, y, f"{safe(item[6]):,.2f}")
 
         y -= altura_item
 
-    if y < 350:
-        desenhar_rodape()
-        pdf.showPage()
-        y = height - 100
-
+    # =========================
+    # TERMOS E TOTAIS
+    # =========================
     subtotal = safe(c[8])
     iva = safe(c[9])
     total = safe(c[10])
 
-    total_box_y = y - 55
-
-    pdf.setFillColor(azul_claro)
-    pdf.setStrokeColor(azul)
-    pdf.roundRect(360, total_box_y, 195, 65, 6, fill=1)
-
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 10)
-
-    pdf.drawString(375, total_box_y + 45, "Subtotal:")
-    pdf.drawRightString(540, total_box_y + 45, f"{subtotal:,.2f} MT")
-
-    pdf.drawString(375, total_box_y + 27, "IVA 16%:")
-    pdf.drawRightString(540, total_box_y + 27, f"{iva:,.2f} MT")
-
-    pdf.setFont("Helvetica-Bold", 11)
-    pdf.drawString(375, total_box_y + 8, "TOTAL:")
-    pdf.drawRightString(540, total_box_y + 8, f"{total:,.2f} MT")
-
-    termos_y = total_box_y - 85
+    termos_y = 185
+    total_box_y = 185
 
     pdf.setStrokeColor(cinza)
-    pdf.roundRect(40, termos_y - 55, 515, 70, 6, fill=0)
+    pdf.roundRect(40, termos_y, 300, 58, 6, fill=0)
 
-    pdf.setFont("Helvetica-Bold", 10)
+    pdf.setFont("Helvetica-Bold", 8)
     pdf.setFillColor(azul)
-    pdf.drawString(55, termos_y - 5, "TERMOS DE PAGAMENTO")
+    pdf.drawString(52, termos_y + 42, "TERMOS DE PAGAMENTO")
 
     pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
+    pdf.setFont("Helvetica", 7)
 
     pagamento = str(c[5] or "")
 
     if pagamento == "100":
-        pdf.drawString(65, termos_y - 25, "• 100% no ato da adjudicação")
+        pdf.drawString(60, termos_y + 27, "• 100% no ato da adjudicação")
     else:
-        pdf.drawString(65, termos_y - 25, "• 60% do pagamento no ato da adjudicação")
-        pdf.drawString(65, termos_y - 40, "• 40% no ato da entrega")
+        pdf.drawString(60, termos_y + 27, "• 60% no ato da adjudicação")
+        pdf.drawString(60, termos_y + 15, "• 40% no ato da entrega")
 
-    pdf.setFont("Helvetica-Bold", 10)
+    pdf.setFont("Helvetica-Bold", 8)
     pdf.setFillColor(azul)
-    pdf.drawString(300, termos_y - 5, "PRAZO DE ENTREGA")
+    pdf.drawString(215, termos_y + 42, "PRAZO")
 
     pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
-    pdf.drawString(310, termos_y - 25, str(c[6] or ""))
+    pdf.setFont("Helvetica", 7)
+    pdf.drawString(215, termos_y + 27, str(c[6] or "")[:20])
 
+    pdf.setFillColor(azul_claro)
+    pdf.setStrokeColor(azul)
+    pdf.roundRect(360, total_box_y, 195, 58, 6, fill=1)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(375, total_box_y + 40, "Subtotal:")
+    pdf.drawRightString(540, total_box_y + 40, f"{subtotal:,.2f} MT")
+
+    pdf.drawString(375, total_box_y + 24, "IVA 16%:")
+    pdf.drawRightString(540, total_box_y + 24, f"{iva:,.2f} MT")
+
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(375, total_box_y + 7, "TOTAL:")
+    pdf.drawRightString(540, total_box_y + 7, f"{total:,.2f} MT")
+
+    # =========================
+    # BANCO + NB
+    # =========================
     nb = str(c[7] or "").strip()
 
-    if nb != "":
-        nb_y = termos_y - 90
-
-        pdf.setStrokeColor(cinza)
-        pdf.roundRect(40, nb_y - 45, 515, 55, 6, fill=0)
-
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.setFillColor(azul)
-        pdf.drawString(55, nb_y - 5, "NB:")
-
-        pdf.setFillColor(colors.black)
-        pdf.setFont("Helvetica", 9)
-
-        nb_linhas = quebrar_texto(nb, 95)
-        nb_text_y = nb_y - 25
-
-        for linha_nb in nb_linhas[:2]:
-            pdf.drawString(75, nb_text_y, linha_nb)
-            nb_text_y -= 12
-
-        bank_y = nb_y - 125
-    else:
-        bank_y = termos_y - 135
+    info_y = 115
 
     pdf.setStrokeColor(azul)
-    pdf.roundRect(40, bank_y, 515, 65, 6, fill=0)
+    pdf.roundRect(40, info_y, 515, 55, 6, fill=0)
 
-    pdf.setFont("Helvetica-Bold", 10)
+    pdf.setFont("Helvetica-Bold", 8)
     pdf.setFillColor(azul)
-    pdf.drawString(55, bank_y + 45, "Detalhes bancários:")
+    pdf.drawString(52, info_y + 38, "Detalhes bancários:")
 
     pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica", 9)
+    pdf.setFont("Helvetica", 7)
+    pdf.drawString(52, info_y + 24, "BANCO BCI – CONTA N°24512268710001")
+    pdf.drawString(52, info_y + 12, "NIB - 000800004512268710113")
 
-    pdf.drawString(55, bank_y + 28, "BANCO BCI – CONTA N°24512268710001")
-    pdf.drawString(55, bank_y + 13, "NIB - 000800004512268710113")
+    if nb:
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.setFillColor(azul)
+        pdf.drawString(300, info_y + 38, "NB:")
+
+        pdf.setFillColor(colors.black)
+        pdf.setFont("Helvetica", 7)
+
+        nb_linhas = quebrar_texto(nb, 42)
+        nb_y = info_y + 24
+
+        for linha_nb in nb_linhas[:2]:
+            pdf.drawString(325, nb_y, linha_nb)
+            nb_y -= 10
 
     desenhar_rodape()
 
@@ -1178,6 +1210,8 @@ def produtos():
 
     if "user" not in session:
         return redirect('/login')
+    if not tem_permissao("estoque"):
+        return "Acesso negado"
 
     conn = conectar()
     cursor = conn.cursor()
@@ -1280,6 +1314,8 @@ def acesso_rh():
 
     if "user" not in session:
         return redirect('/login')
+    if not tem_permissao("rh"):
+        return "Acesso negado"
 
     if request.method == 'POST':
 
@@ -3321,6 +3357,8 @@ def financeiro():
 
     if "user" not in session:
         return redirect('/login')
+    if not tem_permissao("financeiro"):
+         return "Acesso negado"
 
     atualizar_facturas_vencidas()
 
@@ -3366,6 +3404,62 @@ def financeiro():
         qtd_divida=qtd_divida,
         ultimas_facturas=ultimas_facturas
     )
+
+    # =========================
+# CANCELAR FACTURA
+# =========================
+@app.route('/cancelar-factura/<int:id>')
+def cancelar_factura(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    UPDATE facturas
+    SET estado='Cancelada'
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/facturas')
+
+
+# =========================
+# APAGAR FACTURA DEFINITIVAMENTE
+# =========================
+@app.route('/apagar-factura/<int:id>')
+def apagar_factura(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    DELETE FROM recibos
+    WHERE factura_id=%s
+    """, (id,))
+
+    cursor.execute("""
+    DELETE FROM itens_factura
+    WHERE factura_id=%s
+    """, (id,))
+
+    cursor.execute("""
+    DELETE FROM facturas
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/facturas')
 @app.route('/logout')
 def logout():
 

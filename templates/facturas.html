@@ -2,7 +2,6 @@
 {% block content %}
 
 <style>
-
     .header-page {
         display: flex;
         justify-content: space-between;
@@ -27,6 +26,7 @@
         font-size: 12px;
         font-weight: bold;
         display: inline-block;
+        white-space: nowrap;
     }
 
     .aberto {
@@ -44,26 +44,42 @@
         color: #721c24;
     }
 
+    .cancelada {
+        background: #eeeeee;
+        color: #555;
+    }
+
     .acoes {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .form-pagamento {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .form-pagamento select {
+        width: auto;
+        padding: 9px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
     }
 
     .table-wrapper {
         overflow-x: auto;
     }
-
 </style>
 
 <div class="header-page">
 
     <div>
         <h1>📄 Facturas</h1>
-
-        <p>
-            Gestão de facturas, pagamentos e dívidas.
-        </p>
+        <p>Gestão de facturas, pagamentos e dívidas.</p>
     </div>
 
     <a href="/nova-factura" class="btn">
@@ -92,75 +108,72 @@
 
     <tr>
 
-        <td>
-            <strong>{{ f[1] }}</strong>
-        </td>
-
+        <td><strong>{{ f[1] }}</strong></td>
         <td>{{ f[2] }}</td>
-
         <td>{{ f[6] }}</td>
-
         <td>{{ f[7] }}</td>
 
         <td>
-            <strong>
-                {{ "%.2f"|format(f[10] or 0) }} MT
-            </strong>
+            <strong>{{ "%.2f"|format(f[10] or 0) }} MT</strong>
         </td>
 
         <td>
-
             {% if f[11] == "Pago" %}
-
-                <span class="estado pago">
-                    Pago
-                </span>
+                <span class="estado pago">Pago</span>
 
             {% elif f[11] == "Dívida" %}
+                <span class="estado divida">Dívida</span>
 
-                <span class="estado divida">
-                    Dívida
-                </span>
+            {% elif f[11] == "Cancelada" %}
+                <span class="estado cancelada">Cancelada</span>
 
             {% else %}
-
-                <span class="estado aberto">
-                    Em Aberto
-                </span>
-
+                <span class="estado aberto">Em Aberto</span>
             {% endif %}
-
         </td>
 
         <td>
-
             <div class="acoes">
 
-                <a href="/pdf-factura/{{ f[0] }}"
-                   class="btn">
-                   📄 PDF
+                <a href="/pdf-factura/{{ f[0] }}" class="btn">
+                    📄 PDF
                 </a>
 
-                {% if f[11] != "Pago" %}
+                {% if f[11] != "Pago" and f[11] != "Cancelada" %}
 
-                            <form method="POST" action="/marcar-pago/{{ f[0] }}" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <select name="forma_pagamento" required style="width:auto;">
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Outros">Outros</option>
-                </select>
+                <form method="POST"
+                      action="/marcar-pago/{{ f[0] }}"
+                      class="form-pagamento">
 
-                <button type="submit"
-                        class="btn red"
-                        onclick="return confirm('Confirmar pagamento desta factura?')">
-                    ✅ Pago
-                </button>
-            </form>
+                    <select name="forma_pagamento" required>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+
+                    <button type="submit"
+                            class="btn red"
+                            onclick="return confirm('Confirmar pagamento desta factura?')">
+                        ✅ Pago
+                    </button>
+
+                </form>
+
+                <a href="/cancelar-factura/{{ f[0] }}"
+                   class="btn"
+                   onclick="return confirm('Deseja cancelar esta factura? Ela continuará guardada no sistema.')">
+                    ❌ Cancelar
+                </a>
 
                 {% endif %}
 
-            </div>
+                <a href="/apagar-factura/{{ f[0] }}"
+                   class="btn red"
+                   onclick="return confirm('ATENÇÃO: esta ação vai apagar definitivamente a factura e o recibo ligado a ela. Deseja continuar?')">
+                    🗑️ Apagar
+                </a>
 
+            </div>
         </td>
 
     </tr>
