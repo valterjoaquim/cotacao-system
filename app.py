@@ -293,8 +293,8 @@ init_db()
 def login():
 
     if request.method == 'POST':
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
         conn = conectar()
         cursor = conn.cursor()
@@ -312,12 +312,15 @@ def login():
             session['user'] = user[1]
             session['tipo'] = user[3]
             session.pop("rh_autorizado", None)
+
             return redirect('/')
 
-        return "Login inválido"
+        return render_template(
+            "login.html",
+            erro="Usuário ou senha inválidos."
+        )
 
     return render_template("login.html")
-
 
 @app.route('/')
 def dashboard():
@@ -925,43 +928,64 @@ def gerar_pdf(id):
     data = datetime.now().strftime("%d/%m/%Y")
 
     def desenhar_logos_parceiros():
+
         pasta = "static/parceiros"
 
         if not os.path.exists(pasta):
             return
 
+        ordem_logos = [
+            "01_schindler",
+            "02_monarch",
+            "03_mitsubishi",
+            "04_honda_generators",
+            "05_firman",
+            "06_lingtran",
+            "07_gree",
+            "08_hisense",
+            "09_syinix"
+        ]
+
+        extensoes = [".png", ".jpg", ".jpeg"]
+
         logos = []
 
-        for arquivo in os.listdir(pasta):
-            if arquivo.lower().endswith((".png", ".jpg", ".jpeg")):
-                logos.append(os.path.join(pasta, arquivo))
+        for nome in ordem_logos:
+            for ext in extensoes:
+                caminho = os.path.join(pasta, nome + ext)
 
-        logos = logos[:10]
+                if os.path.exists(caminho):
+                    logos.append(caminho)
+                    break
 
         if not logos:
             return
 
-        logo_w = 28
-        logo_h = 18
-        gap = 8
+        logo_w = 36
+        logo_h = 24
+        gap = 4
 
         total_w = (len(logos) * logo_w) + ((len(logos) - 1) * gap)
 
         x = (width - total_w) / 2
-        y = 34
+        y = 28
 
         for logo in logos:
-            pdf.drawImage(
-                logo,
-                x,
-                y,
-                width=logo_w,
-                height=logo_h,
-                preserveAspectRatio=True,
-                mask='auto'
-            )
+            try:
+                pdf.drawImage(
+                    logo,
+                    x,
+                    y,
+                    width=logo_w,
+                    height=logo_h,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
 
-            x += logo_w + gap
+                x += logo_w + gap
+
+            except Exception:
+                pass
 
     def desenhar_rodape():
         desenhar_logos_parceiros()
@@ -987,9 +1011,6 @@ def gerar_pdf(id):
 
         return y_pos - 18
 
-    # =========================
-    # CABEÇALHO
-    # =========================
     logo_path = "static/logo/logo.png"
 
     if os.path.exists(logo_path):
@@ -1003,7 +1024,6 @@ def gerar_pdf(id):
             mask='auto'
         )
 
-    # Título centralizado e bem ajustado
     pdf.setFont("Helvetica-Bold", 12)
     pdf.setFillColor(azul)
     pdf.drawCentredString(
@@ -1024,9 +1044,6 @@ def gerar_pdf(id):
     pdf.setStrokeColor(azul)
     pdf.line(40, height - 112, 555, height - 112)
 
-    # =========================
-    # DADOS DO CLIENTE
-    # =========================
     box_y = height - 205
 
     pdf.setStrokeColor(cinza)
@@ -1050,7 +1067,6 @@ def gerar_pdf(id):
     pdf.drawString(110, box_y + 28, str(c[3] or "")[:34])
     pdf.drawString(105, box_y + 12, str(c[4] or "")[:25])
 
-    # Serviço com mais espaço e até 4 linhas
     servico_linhas = quebrar_texto(c[2], 40)
     servico_y = box_y + 44
 
@@ -1062,15 +1078,13 @@ def gerar_pdf(id):
     pdf.setFillColor(azul)
     pdf.drawRightString(545, box_y + 61, f"Data: {data}")
 
-    # =========================
-    # TABELA
-    # =========================
     y = height - 235
     y = desenhar_cabecalho_tabela(y)
 
     limite_inferior_tabela = 260
 
     for item in itens:
+
         desc_linhas = quebrar_texto(item[4], 55)
         linhas_usadas = desc_linhas[:2]
 
@@ -1107,9 +1121,6 @@ def gerar_pdf(id):
 
         y -= altura_item
 
-    # =========================
-    # TERMOS E TOTAIS
-    # =========================
     subtotal = safe(c[8])
     iva = safe(c[9])
     total = safe(c[10])
@@ -1160,9 +1171,6 @@ def gerar_pdf(id):
     pdf.drawString(375, total_box_y + 7, "TOTAL:")
     pdf.drawRightString(540, total_box_y + 7, f"{total:,.2f} MT")
 
-    # =========================
-    # BANCO + NB
-    # =========================
     nb = str(c[7] or "").strip()
 
     info_y = 115
