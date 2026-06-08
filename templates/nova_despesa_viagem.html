@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .full {
+        grid-column: 1 / -1;
+    }
+
+    .section-title {
+        margin-top: 25px;
+        color: #0d47a1;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .remove-btn {
+        background: #b71c1c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .total-box {
+        margin-top: 20px;
+        padding: 18px;
+        background: #eef4ff;
+        border: 1px solid #cfe0ff;
+        border-radius: 14px;
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 20px;
+        color: #0d47a1;
+    }
+
+    @media(max-width: 800px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<h1>🚗 Relatório de Despesas de Viagem</h1>
+<p>Registe todos os gastos da viagem por data, documento e forma de pagamento.</p>
+
+<div class="card">
+
+<form method="POST">
+
+    <h3 class="section-title">📋 Dados da Viagem</h3>
+
+    <div class="form-grid">
+         <div>
+            <label>Tipo de Viagem</label>
+            <select name="tipo_viagem">
+                <option value="Terrestre">Terrestre</option>
+                <option value="Aéreo">Aéreo</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Empresa</label>
+            <input name="empresa" value="Transportes Vertical, LDA">
+        </div>
+
+        <div>
+            <label>Departamento</label>
+            <input name="departamento" placeholder="Ex: Manutenção">
+        </div>
+
+        <div>
+            <label>Centro de Custo</label>
+            <input name="centro_custo" placeholder="Ex: Gestão Financeira / Manutenção">
+        </div>
+
+        <div>
+            <label>Destino</label>
+            <input name="destino" placeholder="Ex: Nampula" required>
+        </div>
+                <div>
+            <label>Funcionário Responsável</label>
+            <input name="responsavel_viagem" placeholder="Ex: Valter Joaquim">
+        </div>
+
+        <div>
+            <label>Data de Saída</label>
+            <input name="data_saida" type="date">
+        </div>
+
+        <div>
+            <label>Data de Regresso</label>
+            <input name="data_regresso" type="date">
+        </div>
+
+        <div class="full">
+            <label>Roteiro</label>
+            <input name="roteiro" placeholder="Ex: Beira - Nampula - Beira">
+        </div>
+
+        <div class="full">
+            <label>Motivo da Viagem</label>
+            <textarea name="motivo" rows="3" placeholder="Ex: Reparação / Manutenção de elevadores" required></textarea>
+        </div>
+
+    </div>
+
+    <h3 class="section-title">💸 Descrição dos Gastos</h3>
+
+    <div class="table-wrapper">
+
+        <table id="tabelaGastos">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição do gasto</th>
+                    <th>Valor (MZN)</th>
+                    <th>Documento</th>
+                    <th>Forma de pagamento</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <input type="date" name="data_gasto[]">
+                    </td>
+
+                    <td>
+                        <input name="descricao_gasto[]" placeholder="Ex: Taxi / Passagem / Carga" required>
+                    </td>
+
+                    <td>
+                        <input type="number" step="0.01" name="valor_gasto[]" value="0" oninput="calcularTotal()">
+                    </td>
+
+                    <td>
+                        <input name="documento[]" placeholder="Ex: Bilhete nº / Numerário">
+                    </td>
+
+            <td>
+                <select name="documento[]">
+                    <option value="Numerário">Numerário</option>
+                    <option value="Factura">Factura</option>
+                    <option value="Recibo">Recibo</option>
+                    <option value="Bilhete">Bilhete</option>
+                    <option value="Comprovativo M-Pesa">Comprovativo M-Pesa</option>
+                    <option value="Comprovativo E-Mola">Comprovativo E-Mola</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </td>
+
+                    <td>
+                        <button type="button" class="remove-btn" onclick="removerLinha(this)">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <br>
+
+    <button type="button" class="btn light" onclick="adicionarLinha()">
+        ➕ Adicionar Gasto
+    </button>
+
+    <div class="total-box">
+        <span>Total da Viagem</span>
+        <span id="totalViagem">0.00 MT</span>
+    </div>
+
+    <br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Relatório de Viagem
+    </button>
+
+    <a href="/despesas" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+<script>
+function adicionarLinha() {
+    const tabela = document.querySelector("#tabelaGastos tbody");
+
+    const linha = document.createElement("tr");
+
+    linha.innerHTML = `
+        <td>
+            <input type="date" name="data_gasto[]">
+        </td>
+
+        <td>
+            <input name="descricao_gasto[]" placeholder="Ex: Taxi / Passagem / Carga" required>
+        </td>
+
+        <td>
+            <input type="number" step="0.01" name="valor_gasto[]" value="0" oninput="calcularTotal()">
+        </td>
+
+        <td>
+            <input name="documento[]" placeholder="Ex: Bilhete nº / Numerário">
+        </td>
+
+        <td>
+            <select name="forma_pagamento[]">
+                <option value="Numerário">Numerário</option>
+                <option value="E-Mola">E-Mola</option>
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Conta Bancária">Conta Bancária</option>
+                <option value="Cartão">Cartão</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </td>
+
+        <td>
+            <button type="button" class="remove-btn" onclick="removerLinha(this)">
+                🗑️
+            </button>
+        </td>
+    `;
+
+    tabela.appendChild(linha);
+}
+
+function removerLinha(botao) {
+    const linhas = document.querySelectorAll("#tabelaGastos tbody tr");
+
+    if (linhas.length > 1) {
+        botao.closest("tr").remove();
+        calcularTotal();
+    }
+}
+
+function calcularTotal() {
+    let total = 0;
+
+    document.querySelectorAll('input[name="valor_gasto[]"]').forEach(input => {
+        total += parseFloat(input.value || 0);
+    });
+
+    document.getElementById("totalViagem").innerText =
+        total.toLocaleString("pt-MZ", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + " MT";
+}
+</script>
+
+{% endblock %}

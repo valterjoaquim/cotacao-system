@@ -5,7 +5,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from datetime import datetime
-
+from urllib.parse import quote
 app = Flask(__name__)
 app.secret_key = "cotacao123"
 
@@ -281,6 +281,111 @@ ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'Dinheiro'
         INSERT INTO usuarios (username, password, tipo)
         VALUES (%s, %s, %s)
         """, ("admin", "1234", "admin"))
+        # =========================
+# TABELA DESPESAS BÁSICAS
+# =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS despesas (
+        id SERIAL PRIMARY KEY,
+        descricao TEXT NOT NULL,
+        categoria TEXT,
+        valor REAL DEFAULT 0,
+        data_vencimento TEXT,
+        mes TEXT,
+        ano INTEGER,
+        estado TEXT DEFAULT 'Pendente',
+        recorrente TEXT DEFAULT 'Sim',
+        observacao TEXT,
+        data_criacao TEXT
+    )
+    """)
+    # =========================
+# ITENS DAS DESPESAS DE VIAGEM
+# =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS itens_despesa_viagem (
+        id SERIAL PRIMARY KEY,
+        despesa_id INTEGER REFERENCES despesas(id) ON DELETE CASCADE,
+        data_gasto TEXT,
+        descricao TEXT,
+        valor REAL DEFAULT 0,
+        documento TEXT,
+        forma_pagamento TEXT
+    )
+    """)
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS responsavel_viagem TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS data_saida TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS data_regresso TEXT
+    """)
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS empresa TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS departamento TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS centro_custo TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS destino TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS roteiro TEXT
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS hospedagem REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS alimentacao REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS combustivel REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS portagens REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS passagens REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS outras_viagem REAL DEFAULT 0
+    """)
+
+    cursor.execute("""
+    ALTER TABLE despesas
+    ADD COLUMN IF NOT EXISTS tipo_viagem TEXT
+    """)
 
     conn.commit()
     conn.close()
@@ -968,7 +1073,7 @@ def gerar_pdf(id):
         total_w = (len(logos) * logo_w) + ((len(logos) - 1) * gap)
 
         x = (width - total_w) / 2
-        y = 28
+        y = 28 
 
         for logo in logos:
             try:
@@ -1015,14 +1120,14 @@ def gerar_pdf(id):
 
     if os.path.exists(logo_path):
         pdf.drawImage(
-            logo_path,
-            35,
-            height - 92,
-            width=85,
-            height=55,
-            preserveAspectRatio=True,
-            mask='auto'
-        )
+        logo_path,
+        25,
+        height - 105,
+        width=130,
+        height=85,
+        preserveAspectRatio=True,
+        mask='auto'
+    )
 
     pdf.setFont("Helvetica-Bold", 12)
     pdf.setFillColor(azul)
@@ -3468,6 +3573,441 @@ def apagar_factura(id):
     conn.close()
 
     return redirect('/facturas')
+
+@app.route('/despesas')
+def despesas():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM despesas
+    ORDER BY id DESC
+    """)
+
+    despesas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "despesas.html",
+        despesas=despesas
+    )
+
+@app.route('/nova-despesa', methods=['GET', 'POST'])
+def nova_despesa():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+
+        descricao = request.form.get('descricao', '')
+        categoria = request.form.get('categoria', '')
+        valor = float(request.form.get('valor') or 0)
+        data_vencimento = request.form.get('data_vencimento', '')
+        mes = request.form.get('mes', '')
+        ano = int(request.form.get('ano') or 0)
+        recorrente = request.form.get('recorrente', 'Sim')
+        observacao = request.form.get('observacao', '')
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        conn = conectar()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        INSERT INTO despesas (
+            descricao, categoria, valor, data_vencimento,
+            mes, ano, estado, recorrente, observacao, data_criacao
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            descricao, categoria, valor, data_vencimento,
+            mes, ano, "Pendente", recorrente, observacao, data_criacao
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/despesas')
+
+    return render_template("nova_despesa.html")
+
+@app.route('/pagar-despesa/<int:id>')
+def pagar_despesa(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    UPDATE despesas
+    SET estado='Pago'
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/despesas')
+
+@app.route('/whatsapp-despesas')
+def whatsapp_despesas():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT descricao, categoria, valor, data_vencimento
+    FROM despesas
+    WHERE estado='Pendente'
+    ORDER BY data_vencimento ASC
+    """)
+
+    despesas = cursor.fetchall()
+    conn.close()
+
+    if not despesas:
+        mensagem = "Olá, não existem despesas pendentes no momento."
+    else:
+        total = sum(float(d[2] or 0) for d in despesas)
+
+        mensagem = "Olá, lembrete financeiro:%0A%0A"
+        mensagem += "Existem despesas pendentes:%0A%0A"
+
+        for d in despesas:
+            mensagem += f"- {d[0]} ({d[1]}): {float(d[2] or 0):,.2f} MT | Vence: {d[3]}%0A"
+
+        mensagem += f"%0ATotal pendente: {total:,.2f} MT"
+
+    url = "https://wa.me/?text=" + mensagem
+
+    return redirect(url)
+
+@app.route('/nova-despesa-viagem', methods=['GET', 'POST'])
+def nova_despesa_viagem():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+
+        empresa = request.form.get('empresa', '')
+        departamento = request.form.get('departamento', '')
+        centro_custo = request.form.get('centro_custo', '')
+        destino = request.form.get('destino', '')
+        roteiro = request.form.get('roteiro', '')
+        motivo = request.form.get('motivo', '')
+        responsavel_viagem = request.form.get('responsavel_viagem', '')
+        data_saida = request.form.get('data_saida', '')
+        data_regresso = request.form.get('data_regresso', '')
+        tipo_viagem = request.form.get('tipo_viagem', '')
+
+        datas = request.form.getlist('data_gasto[]')
+        descricoes = request.form.getlist('descricao_gasto[]')
+        valores = request.form.getlist('valor_gasto[]')
+        documentos = request.form.getlist('documento[]')
+        pagamentos = request.form.getlist('forma_pagamento[]')
+
+        total = 0
+
+        for v in valores:
+            try:
+                total += float(v or 0)
+            except:
+                pass
+
+        descricao = f"Viagem - {destino}"
+
+        data_vencimento = datetime.now().strftime("%Y-%m-%d")
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        conn = conectar()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        INSERT INTO despesas (
+            descricao,
+            categoria,
+            valor,
+            data_vencimento,
+            mes,
+            ano,
+            estado,
+            recorrente,
+            observacao,
+            data_criacao,
+            empresa,
+            departamento,
+            centro_custo,
+            destino,
+            roteiro,
+            responsavel_viagem,
+            data_saida,
+            data_regresso,
+            tipo_viagem
+        )
+        VALUES (
+            %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+            %s,%s,%s,%s,%s,%s,%s,%s,%s
+        )
+        RETURNING id
+        """, (
+            descricao,
+            "Viagens",
+            total,
+            data_vencimento,
+            datetime.now().strftime("%B"),
+            datetime.now().year,
+            "Pendente",
+            "Não",
+            motivo,
+            data_criacao,
+            empresa,
+            departamento,
+            centro_custo,
+            destino,
+            roteiro,
+            responsavel_viagem,
+            data_saida,
+            data_regresso,
+            tipo_viagem
+        ))
+
+        despesa_id = cursor.fetchone()[0]
+
+        for i in range(len(descricoes)):
+
+            descricao_item = descricoes[i].strip() if i < len(descricoes) else ""
+
+            if not descricao_item:
+                continue
+
+            data_item = datas[i] if i < len(datas) else ""
+            valor_item = float(valores[i] or 0) if i < len(valores) else 0
+            documento_item = documentos[i] if i < len(documentos) else ""
+            pagamento_item = pagamentos[i] if i < len(pagamentos) else ""
+
+            cursor.execute("""
+            INSERT INTO itens_despesa_viagem (
+                despesa_id,
+                data_gasto,
+                descricao,
+                valor,
+                documento,
+                forma_pagamento
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                despesa_id,
+                data_item,
+                descricao_item,
+                valor_item,
+                documento_item,
+                pagamento_item
+            ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/despesas')
+
+    return render_template("nova_despesa_viagem.html")
+@app.route('/pdf-viagem/<int:id>')
+def pdf_viagem(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM despesas
+    WHERE id=%s
+    """, (id,))
+
+    despesa_row = cursor.fetchone()
+
+    colunas = [desc[0] for desc in cursor.description]
+
+    despesa = dict(zip(colunas, despesa_row)) if despesa_row else None
+
+    cursor.execute("""
+    SELECT data_gasto, descricao, valor, documento, forma_pagamento
+    FROM itens_despesa_viagem
+    WHERE despesa_id=%s
+    ORDER BY id ASC
+    """, (id,))
+
+    itens = cursor.fetchall()
+    conn.close()
+
+    if not despesa:
+        return "Despesa não encontrada"
+
+    os.makedirs("pdfs", exist_ok=True)
+
+    file_path = f"pdfs/viagem_{id}.pdf"
+
+    pdf = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    azul = colors.HexColor("#0d47a1")
+    cinza = colors.HexColor("#eeeeee")
+    azul_claro = colors.HexColor("#e3f2fd")
+
+    def money(v):
+        return f"{float(v or 0):,.2f} MT"
+
+    def texto(campo):
+        return str(despesa.get(campo) or "")
+
+    logo_path = "static/logo/logo.png"
+
+    if os.path.exists(logo_path):
+        pdf.drawImage(
+            logo_path,
+            40,
+            height - 100,
+            width=90,
+            height=55,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawString(150, height - 50, "RELATÓRIO DE DESPESAS DE VIAGEM")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(150, height - 70, "Transporte Vertical MOZ")
+    pdf.drawString(150, height - 85, "Av. Armando Tivane – Goto | Beira - Moçambique")
+    pdf.drawString(150, height - 100, "Cell: (+258) 878340748 / 847891715")
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawRightString(555, height - 55, f"Nº REL-{id:05d}/2026")
+    pdf.drawRightString(555, height - 75, f"Data: {datetime.now().strftime('%d/%m/%Y')}")
+
+    pdf.setStrokeColor(azul)
+    pdf.line(40, height - 120, 555, height - 120)
+
+    y = height - 215
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y, 515, 95, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y + 78, "DADOS DA VIAGEM")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(55, y + 60, f"Empresa: {texto('empresa')}")
+    pdf.drawString(55, y + 45, f"Departamento: {texto('departamento')}")
+    pdf.drawString(55, y + 30, f"Centro de Custo: {texto('centro_custo')}")
+    pdf.drawString(55, y + 15, f"Saída: {texto('data_saida')}")
+    pdf.drawString(180, y + 15, f"Regresso: {texto('data_regresso')}")
+
+    pdf.drawString(300, y + 60, f"Destino: {texto('destino')}")
+    pdf.drawString(300, y + 45, f"Roteiro: {texto('roteiro')}")
+    pdf.drawString(300, y + 30, f"Responsável: {texto('responsavel_viagem')}")
+
+    pdf.setFillColor(azul_claro)
+    pdf.roundRect(300, y + 8, 245, 17, 4, fill=1)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawString(310, y + 13, f"Tipo de Viagem: {texto('tipo_viagem')}")
+
+    pdf.setFont("Helvetica", 8)
+    pdf.drawString(55, y - 18, f"Motivo: {texto('observacao')[:95]}")
+
+    tabela_y = y - 55
+
+    pdf.setFillColor(azul)
+    pdf.rect(40, tabela_y, 515, 22, fill=1)
+
+    pdf.setFillColor(colors.white)
+    pdf.setFont("Helvetica-Bold", 8)
+
+    pdf.drawString(48, tabela_y + 8, "Data")
+    pdf.drawString(110, tabela_y + 8, "Descrição")
+    pdf.drawString(300, tabela_y + 8, "Documento")
+    pdf.drawString(400, tabela_y + 8, "Pagamento")
+    pdf.drawString(500, tabela_y + 8, "Valor")
+
+    y_item = tabela_y - 18
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    for item in itens:
+
+        if y_item < 120:
+            break
+
+        data_gasto = item[0] or ""
+        descricao = item[1] or ""
+        valor = float(item[2] or 0)
+        documento = item[3] or ""
+        pagamento = item[4] or ""
+
+        pdf.drawString(48, y_item, data_gasto)
+        pdf.drawString(110, y_item, descricao[:35])
+        pdf.drawString(300, y_item, documento[:18])
+        pdf.drawString(400, y_item, pagamento[:18])
+        pdf.drawRightString(545, y_item, money(valor))
+
+        pdf.setStrokeColor(cinza)
+        pdf.line(40, y_item - 5, 555, y_item - 5)
+
+        y_item -= 18
+
+    total_y = y_item - 35
+
+    pdf.setFillColor(azul_claro)
+    pdf.setStrokeColor(azul)
+    pdf.roundRect(360, total_y, 195, 45, 6, fill=1)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(375, total_y + 17, "TOTAL:")
+    pdf.drawRightString(540, total_y + 17, money(despesa.get("valor")))
+
+    assinatura_y = 75
+
+    pdf.setStrokeColor(colors.black)
+    pdf.line(55, assinatura_y, 225, assinatura_y)
+    pdf.line(330, assinatura_y, 520, assinatura_y)
+
+    pdf.setFont("Helvetica", 8)
+    pdf.drawCentredString(140, assinatura_y - 15, "Preparado por")
+    pdf.drawCentredString(425, assinatura_y - 15, "Aprovado por")
+
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawString(40, 30, "Documento gerado automaticamente pelo sistema.")
+
+    pdf.save()
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"RELATORIO_VIAGEM_{id}.pdf"
+    )
 @app.route('/logout')
 def logout():
 

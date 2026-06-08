@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>➕ Nova Despesa</h1>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Descrição</label>
+    <input name="descricao" placeholder="Ex: Renda do escritório" required>
+
+    <br><br>
+
+    <label>Categoria</label>
+    <select name="categoria" required>
+       <option value="Avença">Avença</option>
+        <option value="Renda">Renda</option>
+        <option value="IVA">IVA</option>
+        <option value="Salários">Salários</option>
+        <option value="Escritório">Escritório</option>
+        <option value="Internet">Internet</option>
+        <option value="Viagens">Viagens</option>
+        <option value="Combustível">Combustível</option>
+        <option value="Manutenção">Manutenção</option>
+        <option value="Material">Material</option>
+        <option value="Outros">Outros</option>
+    </select>
+
+    <br><br>
+
+    <label>Valor</label>
+    <input name="valor" type="number" step="0.01" placeholder="Ex: 15000" required>
+
+    <br><br>
+
+    <label>Data de Vencimento</label>
+    <input name="data_vencimento" type="date" required>
+
+    <br><br>
+
+    <label>Mês</label>
+    <input name="mes" placeholder="Ex: Junho" required>
+
+    <br><br>
+
+    <label>Ano</label>
+    <input name="ano" type="number" value="2026" required>
+
+    <br><br>
+
+    <label>Recorrente?</label>
+    <select name="recorrente">
+        <option value="Sim">Sim</option>
+        <option value="Não">Não</option>
+    </select>
+
+    <br><br>
+
+    <label>Observação</label>
+    <textarea name="observacao" rows="4" placeholder="Observações adicionais"></textarea>
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Despesa
+    </button>
+
+    <a href="/despesas" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

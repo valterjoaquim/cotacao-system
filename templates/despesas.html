@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>💸 Despesas</h1>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+
+```
+<a href="/nova-despesa" class="btn">
+    ➕ Nova Despesa
+</a>
+
+<a href="/nova-despesa-viagem" class="btn orange">
+    🚗 Nova Despesa de Viagem
+</a>
+
+<a href="/whatsapp-despesas"
+   class="btn green"
+   target="_blank">
+    📲 Enviar lembrete WhatsApp
+</a>
+```
+
+</div>
+
+<div class="card">
+
+<table>
+
+<tr>
+    <th>Descrição</th>
+    <th>Categoria</th>
+    <th>Valor</th>
+    <th>Vencimento</th>
+    <th>Estado</th>
+    <th>Ações</th>
+</tr>
+
+{% for d in despesas %}
+
+<tr>
+
+```
+<td>{{ d[1] }}</td>
+
+<td>
+    {{ d[2] }}
+</td>
+
+<td>
+    <strong>
+        {{ "%.2f"|format(d[3] or 0) }} MT
+    </strong>
+</td>
+
+<td>
+    {{ d[4] }}
+</td>
+
+<td>
+
+    {% if d[7] == "Pago" %}
+
+        <span style="
+            background:#d4edda;
+            color:#155724;
+            padding:5px 10px;
+            border-radius:15px;
+            font-size:12px;
+            font-weight:bold;
+        ">
+            Pago
+        </span>
+
+    {% else %}
+
+        <span style="
+            background:#fff3cd;
+            color:#856404;
+            padding:5px 10px;
+            border-radius:15px;
+            font-size:12px;
+            font-weight:bold;
+        ">
+            Pendente
+        </span>
+
+    {% endif %}
+
+</td>
+
+<td>
+
+    <div style="
+        display:flex;
+        gap:6px;
+        flex-wrap:wrap;
+    ">
+
+        {% if d[7] != "Pago" %}
+
+        <a href="/pagar-despesa/{{ d[0] }}"
+           class="btn"
+           onclick="return confirm('Confirmar pagamento desta despesa?')">
+
+            ✅ Pagar
+
+        </a>
+
+        {% endif %}
+
+        {% if d[2] == "Viagens" %}
+
+        <a href="/pdf-viagem/{{ d[0] }}"
+           class="btn light">
+
+            📄 PDF Viagem
+
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</td>
+```
+
+</tr>
+
+{% else %}
+
+<tr>
+    <td colspan="6" style="text-align:center;padding:25px;">
+        Nenhuma despesa encontrada.
+    </td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+{% endblock %}
