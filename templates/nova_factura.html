@@ -2,7 +2,7 @@
 {% block content %}
 
 <h1>🧾 Nova Factura</h1>
-<p>Preencha os dados do cliente e os itens da factura.</p>
+<p>Selecione o cliente cadastrado e preencha os itens da factura.</p>
 
 <br>
 
@@ -13,22 +13,28 @@
     <h3>Dados do Cliente</h3>
 
     <label>Cliente</label>
-    <input type="text" name="cliente" required>
+    <select name="cliente_id" id="cliente_id" required onchange="preencherCliente()">
+        <option value="">Selecione o cliente</option>
+
+        {% for c in clientes %}
+        <option
+            value="{{ c[0] }}"
+            data-endereco="{{ c[2] }}"
+            data-nuit="{{ c[3] }}">
+            {{ c[1] }}
+        </option>
+        {% endfor %}
+    </select>
 
     <br><br>
 
-    <label>Morada</label>
-    <input type="text" name="morada">
-
-    <br><br>
-
-    <label>Celular</label>
-    <input type="text" name="celular">
+    <label>Endereço</label>
+    <input type="text" id="endereco" readonly>
 
     <br><br>
 
     <label>NUIT</label>
-    <input type="text" name="nuit">
+    <input type="text" id="nuit" readonly>
 
     <br><br>
 
@@ -88,6 +94,14 @@
 </div>
 
 <script>
+function preencherCliente() {
+    const select = document.getElementById("cliente_id");
+    const option = select.options[select.selectedIndex];
+
+    document.getElementById("endereco").value = option.getAttribute("data-endereco") || "";
+    document.getElementById("nuit").value = option.getAttribute("data-nuit") || "";
+}
+
 function adicionarLinha() {
     const tabela = document.getElementById("itens");
 

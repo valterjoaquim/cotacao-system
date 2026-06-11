@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>➕ Novo Equipamento</h1>
+
+<p>
+    Empresa:
+    <strong>{{ empresa[0] if empresa else "" }}</strong>
+</p>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Nome do Equipamento</label>
+    <input name="nome" placeholder="Ex: Elevador 1 / Gerador 1" required>
+
+    <br><br>
+
+    <label>Marca</label>
+    <input name="marca" placeholder="Ex: Schindler / Mitsubishi / Firman">
+
+    <br><br>
+
+    <label>Modelo</label>
+    <input name="modelo" placeholder="Ex: S300 / MX100">
+
+    <br><br>
+
+    <label>Nº de Série</label>
+    <input name="numero_serie" placeholder="Ex: TVM-001">
+
+    <br><br>
+
+    <label>Localização Interna</label>
+    <input name="localizacao" placeholder="Ex: Bloco A / Piso 2 / Casa das máquinas">
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Equipamento
+    </button>
+
+    <a href="/empresa-manutencao/{{ empresa_id }}" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✅ Resolver Avaria</h1>
+
+<div class="card">
+
+<p>
+    <strong>Equipamento:</strong> {{ avaria[3] }}
+</p>
+
+<p>
+    <strong>Descrição:</strong> {{ avaria[4] }}
+</p>
+
+<p>
+    <strong>Prioridade:</strong> {{ avaria[5] }}
+</p>
+
+<form method="POST">
+
+    <label>Técnico Responsável</label>
+    <input name="tecnico" value="{{ avaria[7] or '' }}" required>
+
+    <br><br>
+
+    <label>Solução Aplicada</label>
+    <textarea name="solucao" rows="5" placeholder="Descreva a solução aplicada" required></textarea>
+
+    <br><br>
+
+    <label>Data de Resolução</label>
+    <input name="data_resolucao" type="date" required>
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        ✅ Marcar como Resolvida
+    </button>
+
+    <a href="/empresa-manutencao/{{ avaria[1] }}" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

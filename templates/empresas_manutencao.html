@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🔧 Empresas de Manutenção</h1>
+<p>Cadastro das empresas/clientes acompanhados pela equipa técnica.</p>
+
+<div class="card">
+
+<h3>➕ Nova Empresa</h3>
+
+<form method="POST">
+
+    <label>Nome da Empresa</label>
+    <input name="nome" placeholder="Ex: CFM-CENTRO" required>
+
+    <br><br>
+
+    <label>Localização</label>
+    <input name="localizacao" placeholder="Ex: Beira">
+
+    <br><br>
+
+    <label>Contacto</label>
+    <input name="contacto" placeholder="Ex: 84xxxxxxx">
+
+    <br><br>
+
+    <label>Responsável</label>
+    <input name="responsavel" placeholder="Nome do responsável">
+
+    <br><br>
+
+    <label>Tipo de Equipamento</label>
+    <select name="tipo_equipamento">
+        <option value="Elevador">Elevador</option>
+        <option value="Gerador">Gerador</option>
+        <option value="Ar Condicionado">Ar Condicionado</option>
+        <option value="Escada Rolante">Escada Rolante</option>
+        <option value="Outro">Outro</option>
+    </select>
+
+    <br><br>
+
+    <label>Quantidade de Equipamentos</label>
+    <input name="quantidade_equipamentos" type="number" value="1">
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Empresa
+    </button>
+
+</form>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>📋 Lista de Empresas</h3>
+
+<table>
+    <tr>
+        <th>Empresa</th>
+        <th>Localização</th>
+        <th>Contacto</th>
+        <th>Responsável</th>
+        <th>Equipamento</th>
+        <th>Qtd</th>
+        <th>Estado</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for e in empresas %}
+    <tr>
+        <td><strong>{{ e[1] }}</strong></td>
+        <td>{{ e[2] }}</td>
+        <td>{{ e[3] }}</td>
+        <td>{{ e[4] }}</td>
+        <td>{{ e[5] }}</td>
+        <td>{{ e[6] }}</td>
+        <td>{{ e[7] }}</td>
+        <td>
+          <a href="/empresa-manutencao/{{ e[0] }}" class="btn light">
+    📊 Detalhes
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="8" style="text-align:center; padding:30px;">
+            Nenhuma empresa cadastrada.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🛠️ Nova Manutenção</h1>
+<p>Registo de manutenção feita numa empresa.</p>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Empresa</label>
+    <select name="empresa_id" required>
+        <option value="">Selecione a empresa</option>
+
+        {% for e in empresas %}
+        <option value="{{ e[0] }}">
+            {{ e[1] }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Data da Manutenção</label>
+    <input name="data_manutencao" type="date" required>
+
+    <br><br>
+
+    <label>Tipo de Manutenção</label>
+    <select name="tipo_manutencao">
+        <option value="Preventiva">Preventiva</option>
+        <option value="Corretiva">Corretiva</option>
+        <option value="Inspeção">Inspeção</option>
+        <option value="Outro">Outro</option>
+    </select>
+
+    <br><br>
+
+    <label>Técnico Responsável</label>
+    <input name="tecnico" placeholder="Nome do técnico">
+
+    <br><br>
+
+    <label>Descrição do Serviço</label>
+    <textarea name="descricao_servico" rows="4" placeholder="Descreva o serviço executado"></textarea>
+
+    <br><br>
+
+    <label>Próxima Manutenção</label>
+    <input name="proxima_manutencao" type="date">
+
+    <br><br>
+
+    <label>Observação</label>
+    <textarea name="observacao" rows="3" placeholder="Observações adicionais"></textarea>
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Manutenção
+    </button>
+
+    <a href="/empresas-manutencao" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

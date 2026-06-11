@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>📁 Cliente Financeiro</h1>
+
+<p>
+    Cliente:
+    <strong>{{ dados_cliente[0] if dados_cliente else "Sem nome" }}</strong>
+</p>
+
+<p>
+    NUIT:
+    <strong>{{ nuit }}</strong>
+</p>
+
+{% if dados_cliente %}
+<p>
+    Morada: {{ dados_cliente[1] or "" }} |
+    Celular: {{ dados_cliente[2] or "" }}
+</p>
+{% endif %}
+
+<section style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:25px;">
+
+    <div class="card">
+        <span>Total Facturado</span>
+        <h2>{{ "%.2f"|format(resumo_facturas[0] or 0) }} MT</h2>
+        <small>{{ resumo_facturas[1] }} factura(s)</small>
+    </div>
+
+    <div class="card">
+        <span>Total Recebido</span>
+        <h2 style="color:#1b5e20;">
+            {{ "%.2f"|format(total_recebido or 0) }} MT
+        </h2>
+    </div>
+
+    <div class="card">
+        <span>Total Pendente</span>
+        <h2 style="color:#d32f2f;">
+            {{ "%.2f"|format(total_pendente or 0) }} MT
+        </h2>
+    </div>
+
+</section>
+
+<div class="card">
+
+<h3>📄 Facturas</h3>
+
+<table>
+    <tr>
+        <th>Nº</th>
+        <th>Cliente</th>
+        <th>Data</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for f in facturas %}
+    <tr>
+        <td>{{ f[1] }}</td>
+        <td>{{ f[2] }}</td>
+        <td>{{ f[6] }}</td>
+        <td>{{ "%.2f"|format(f[10] or 0) }} MT</td>
+        <td>{{ f[11] }}</td>
+        <td>
+            <a href="/pdf-factura/{{ f[0] }}" class="btn">
+                📄 PDF
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6" style="text-align:center; padding:30px;">
+            Nenhuma factura encontrada para este cliente.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>🧾 Recibos</h3>
+
+<table>
+    <tr>
+        <th>Nº Recibo</th>
+        <th>Factura</th>
+        <th>Cliente</th>
+        <th>Valor Pago</th>
+        <th>Data</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for r in recibos %}
+    <tr>
+        <td>{{ r[1] }}</td>
+        <td>{{ r[3] }}</td>
+        <td>{{ r[4] }}</td>
+        <td>{{ "%.2f"|format(r[5] or 0) }} MT</td>
+        <td>{{ r[6] }}</td>
+        <td>
+            <a href="/pdf-recibo/{{ r[0] }}" class="btn">
+                🧾 PDF
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6" style="text-align:center; padding:30px;">
+            Nenhum recibo encontrado para este cliente.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>👥 Cadastro de Clientes</h1>
+
+<div class="card">
+
+<h3>➕ Novo Cliente</h3>
+
+<form method="POST">
+
+    <label>Nome do Cliente</label>
+
+<input name="nome" placeholder="Ex: CFM-CENTRO" required>
+
+<br><br>
+
+<label>Endereço</label>
+<input name="endereco" placeholder="Ex: Beira">
+
+<br><br>
+
+<label>NUIT</label>
+<input name="nuit" placeholder="Ex: 400123456">
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Cliente
+    </button>
+
+</form>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<div class="card">
+
+<div class="card">
+
+<h3>📋 Lista de Clientes</h3>
+
+<table>
+    <tr>
+        <th>Cliente</th>
+        <th>NUIT</th>
+        <th>Endereço</th>
+        <th>Facturas</th>
+        <th>Total Facturado</th>
+        <th>Última Factura</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for c in clientes %}
+    <tr>
+        <td><strong>{{ c[1] }}</strong></td>
+        <td>{{ c[2] }}</td>
+        <td>{{ c[3] }}</td>
+        <td>{{ c[5] }}</td>
+        <td><strong>{{ "%.2f"|format(c[6] or 0) }} MT</strong></td>
+        <td>{{ c[7] or "Sem factura" }}</td>
+        <td>
+            <a href="/cliente-financeiro/{{ c[2] }}" class="btn">
+                📊 Histórico
+            </a>
+
+            <a href="/editar-cliente/{{ c[0] }}" class="btn light">
+                ✏️ Editar
+            </a>
+            <a href="/apagar-cliente/{{ c[0] }}"
+            class="btn red"
+            onclick="return confirm('Deseja realmente eliminar este cliente?')">
+                🗑️ Eliminar
+            </a>
+                    </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="7" style="text-align:center; padding:30px;">
+            Nenhum cliente cadastrado.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✏️ Editar Avaria</h1>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Equipamento</label>
+    <input name="equipamento" value="{{ avaria[3] or '' }}">
+
+    <br><br>
+
+    <label>Descrição</label>
+    <textarea name="descricao" rows="4">{{ avaria[4] or '' }}</textarea>
+
+    <br><br>
+
+    <label>Prioridade</label>
+    <select name="prioridade">
+        <option value="Baixa" {% if avaria[5]=="Baixa" %}selected{% endif %}>Baixa</option>
+        <option value="Média" {% if avaria[5]=="Média" %}selected{% endif %}>Média</option>
+        <option value="Alta" {% if avaria[5]=="Alta" %}selected{% endif %}>Alta</option>
+        <option value="Crítica" {% if avaria[5]=="Crítica" %}selected{% endif %}>Crítica</option>
+    </select>
+
+    <br><br>
+
+    <label>Estado</label>
+    <select name="estado">
+        <option value="Aberta" {% if avaria[6]=="Aberta" %}selected{% endif %}>Aberta</option>
+        <option value="Em Andamento" {% if avaria[6]=="Em Andamento" %}selected{% endif %}>Em Andamento</option>
+        <option value="Resolvida" {% if avaria[6]=="Resolvida" %}selected{% endif %}>Resolvida</option>
+    </select>
+
+    <br><br>
+
+    <label>Técnico</label>
+    <input name="tecnico" value="{{ avaria[7] or '' }}">
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar
+    </button>
+
+</form>
+
+</div>
+
+{% endblock %}

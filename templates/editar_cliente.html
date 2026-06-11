@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✏️ Editar Cliente</h1>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Nome do Cliente</label>
+    <input name="nome" value="{{ cliente[1] }}" required>
+
+    <br><br>
+
+    <label>NUIT</label>
+    <input name="nuit" value="{{ cliente[2] }}">
+
+    <br><br>
+
+    <label>Endereço</label>
+    <input name="endereco" value="{{ cliente[7] if cliente|length > 7 else cliente[3] }}">
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Alterações
+    </button>
+
+    <a href="/clientes" class="btn light">
+        Cancelar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

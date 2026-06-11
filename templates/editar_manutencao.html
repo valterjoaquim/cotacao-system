@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✏️ Editar Manutenção</h1>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Data da Manutenção</label>
+    <input name="data_manutencao" type="date" value="{{ manutencao[2] }}">
+
+    <br><br>
+
+    <label>Tipo de Manutenção</label>
+    <select name="tipo_manutencao">
+        <option value="Preventiva" {% if manutencao[3] == "Preventiva" %}selected{% endif %}>Preventiva</option>
+        <option value="Corretiva" {% if manutencao[3] == "Corretiva" %}selected{% endif %}>Corretiva</option>
+        <option value="Inspeção" {% if manutencao[3] == "Inspeção" %}selected{% endif %}>Inspeção</option>
+        <option value="Outro" {% if manutencao[3] == "Outro" %}selected{% endif %}>Outro</option>
+    </select>
+
+    <br><br>
+
+    <label>Técnico Responsável</label>
+    <input name="tecnico" value="{{ manutencao[4] or '' }}">
+
+    <br><br>
+
+    <label>Descrição do Serviço</label>
+    <textarea name="descricao_servico" rows="4">{{ manutencao[5] or '' }}</textarea>
+
+    <br><br>
+
+    <label>Estado</label>
+    <select name="estado">
+        <option value="Pendente" {% if manutencao[6] == "Pendente" %}selected{% endif %}>Pendente</option>
+        <option value="Concluída" {% if manutencao[6] == "Concluída" %}selected{% endif %}>Concluída</option>
+        <option value="Cancelada" {% if manutencao[6] == "Cancelada" %}selected{% endif %}>Cancelada</option>
+    </select>
+
+    <br><br>
+
+    <label>Próxima Manutenção</label>
+    <input name="proxima_manutencao" type="date" value="{{ manutencao[7] or '' }}">
+
+    <br><br>
+
+    <label>Observação</label>
+    <textarea name="observacao" rows="3">{{ manutencao[8] or '' }}</textarea>
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Alterações
+    </button>
+
+    <a href="/empresa-manutencao/{{ manutencao[1] }}" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

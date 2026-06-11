@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>⚠️ Nova Avaria</h1>
+<p>Registo de avaria identificada numa empresa.</p>
+
+<div class="card">
+
+<form method="POST">
+
+    <label>Empresa</label>
+    <select name="empresa_id" required>
+        <option value="">Selecione a empresa</option>
+
+        {% for e in empresas %}
+        <option value="{{ e[0] }}">
+            {{ e[1] }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Data da Avaria</label>
+    <input name="data_avaria" type="date" required>
+
+    <br><br>
+
+    <label>Equipamento</label>
+    <input name="equipamento" placeholder="Ex: Elevador 1 / Gerador / AC">
+
+    <br><br>
+
+    <label>Descrição da Avaria</label>
+    <textarea name="descricao" rows="4" placeholder="Descreva o problema encontrado" required></textarea>
+
+    <br><br>
+
+    <label>Prioridade</label>
+    <select name="prioridade">
+        <option value="Baixa">Baixa</option>
+        <option value="Média">Média</option>
+        <option value="Alta">Alta</option>
+        <option value="Crítica">Crítica</option>
+    </select>
+
+    <br><br>
+
+    <label>Técnico Responsável</label>
+    <input name="tecnico" placeholder="Nome do técnico">
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        💾 Guardar Avaria
+    </button>
+
+    <a href="/empresas-manutencao" class="btn light">
+        Voltar
+    </a>
+
+</form>
+
+</div>
+
+{% endblock %}

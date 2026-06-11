@@ -217,6 +217,24 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
     confirmado TEXT DEFAULT 'Não'
 )
 """)
+        # =========================
+    # TABELA CLIENTES
+    # =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS clientes (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        nuit TEXT UNIQUE,
+        morada TEXT,
+        celular TEXT,
+        email TEXT,
+        data_criacao TEXT
+    )
+    """)
+    cursor.execute("""
+    ALTER TABLE clientes
+    ADD COLUMN IF NOT EXISTS endereco TEXT
+    """)
 
 
     cursor.execute("""
@@ -386,6 +404,75 @@ ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'Dinheiro'
     ALTER TABLE despesas
     ADD COLUMN IF NOT EXISTS tipo_viagem TEXT
     """)
+    # =========================
+# EMPRESAS DE MANUTENÇÃO
+# =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS empresas_manutencao (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        localizacao TEXT,
+        contacto TEXT,
+        responsavel TEXT,
+        tipo_equipamento TEXT,
+        quantidade_equipamentos INTEGER DEFAULT 0,
+        estado TEXT DEFAULT 'Ativo',
+        data_criacao TEXT
+    )
+    """)
+
+    # =========================
+# MANUTENÇÕES
+# =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS manutencoes (
+        id SERIAL PRIMARY KEY,
+        empresa_id INTEGER REFERENCES empresas_manutencao(id) ON DELETE CASCADE,
+        data_manutencao TEXT,
+        tipo_manutencao TEXT,
+        tecnico TEXT,
+        descricao_servico TEXT,
+        estado TEXT DEFAULT 'Pendente',
+        proxima_manutencao TEXT,
+        observacao TEXT,
+        data_criacao TEXT
+    )
+    """)
+    # =========================
+# AVARIAS
+# =========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS avarias (
+        id SERIAL PRIMARY KEY,
+        empresa_id INTEGER REFERENCES empresas_manutencao(id) ON DELETE CASCADE,
+        data_avaria TEXT,
+        equipamento TEXT,
+        descricao TEXT,
+        prioridade TEXT,
+        estado TEXT DEFAULT 'Aberta',
+        tecnico TEXT,
+        solucao TEXT,
+        data_resolucao TEXT,
+        data_criacao TEXT
+    )
+    """)
+
+    cursor.execute("""
+CREATE TABLE IF NOT EXISTS equipamentos_manutencao (
+    id SERIAL PRIMARY KEY,
+    empresa_id INTEGER REFERENCES empresas_manutencao(id) ON DELETE CASCADE,
+    nome TEXT,
+    marca TEXT,
+    modelo TEXT,
+    numero_serie TEXT,
+    localizacao TEXT,
+    estado TEXT DEFAULT 'Activo',
+    data_criacao TEXT
+)
+""")
+    
+    
+    
 
     conn.commit()
     conn.close()
@@ -2585,12 +2672,32 @@ def nova_factura():
     if "user" not in session:
         return redirect('/login')
 
+    if not tem_permissao("financeiro"):
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
     if request.method == 'POST':
 
-        cliente = request.form.get('cliente', '').strip()
-        morada = request.form.get('morada', '').strip()
-        celular = request.form.get('celular', '').strip()
-        nuit = request.form.get('nuit', '').strip()
+        cliente_id = request.form.get('cliente_id', '')
+
+        cursor.execute("""
+        SELECT nome, endereco, nuit
+        FROM clientes
+        WHERE id=%s
+        """, (cliente_id,))
+
+        cliente_dados = cursor.fetchone()
+
+        if not cliente_dados:
+            conn.close()
+            return "Erro: selecione um cliente válido."
+
+        cliente = cliente_dados[0]
+        morada = cliente_dados[1]
+        nuit = cliente_dados[2]
+        celular = ""
 
         quantidades = request.form.getlist('quantidade[]')
         descricoes = request.form.getlist('descricao[]')
@@ -2619,22 +2726,19 @@ def nova_factura():
             })
 
         if not itens:
+            conn.close()
             return "Erro: adicione pelo menos um item válido."
 
         iva = subtotal_geral * 0.16
         total = subtotal_geral + iva
 
         data_factura = datetime.now()
-        data_vencimento = data_factura.replace(day=data_factura.day) 
 
         from datetime import timedelta
         vencimento = data_factura + timedelta(days=30)
 
         data_factura_txt = data_factura.strftime("%d/%m/%Y")
         data_vencimento_txt = vencimento.strftime("%d/%m/%Y")
-
-        conn = conectar()
-        cursor = conn.cursor()
 
         cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM facturas")
         proximo_id = cursor.fetchone()[0]
@@ -2696,8 +2800,20 @@ def nova_factura():
 
         return redirect('/facturas')
 
-    return render_template("nova_factura.html")
+    cursor.execute("""
+    SELECT id, nome, endereco, nuit
+    FROM clientes
+    ORDER BY nome
+    """)
 
+    clientes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "nova_factura.html",
+        clientes=clientes
+    )
 
 # =========================
 # LISTAR FACTURAS
@@ -4008,6 +4124,1319 @@ def pdf_viagem(id):
         as_attachment=True,
         download_name=f"RELATORIO_VIAGEM_{id}.pdf"
     )
+@app.route('/clientes-financeiros')
+def clientes_financeiros():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        cliente,
+        nuit,
+        COUNT(*) as total_facturas,
+        SUM(total) as valor_total
+    FROM facturas
+    GROUP BY cliente, nuit
+    ORDER BY cliente
+    """)
+
+    clientes = cursor.fetchall()
+    
+
+    conn.close()
+
+    return render_template(
+        "clientes_financeiros.html",
+        clientes=clientes
+    )
+@app.route('/cliente-financeiro/<nuit>')
+def cliente_financeiro(nuit):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if not tem_permissao("financeiro"):
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM facturas
+    WHERE nuit=%s
+    ORDER BY id DESC
+    """, (nuit,))
+
+    facturas = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT *
+    FROM recibos
+    WHERE numero_factura IN (
+        SELECT numero
+        FROM facturas
+        WHERE nuit=%s
+    )
+    ORDER BY id DESC
+    """, (nuit,))
+
+    recibos = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT
+        COALESCE(SUM(total), 0),
+        COUNT(*)
+    FROM facturas
+    WHERE nuit=%s
+    """, (nuit,))
+
+    resumo_facturas = cursor.fetchone()
+
+    cursor.execute("""
+    SELECT COALESCE(SUM(valor_pago), 0)
+    FROM recibos
+    WHERE numero_factura IN (
+        SELECT numero
+        FROM facturas
+        WHERE nuit=%s
+    )
+    """, (nuit,))
+
+    total_recebido = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COALESCE(SUM(total), 0)
+    FROM facturas
+    WHERE nuit=%s AND estado!='Pago'
+    """, (nuit,))
+
+    total_pendente = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT cliente, morada, celular
+    FROM facturas
+    WHERE nuit=%s
+    ORDER BY id DESC
+    LIMIT 1
+    """, (nuit,))
+
+    dados_cliente = cursor.fetchone()
+
+    conn.close()
+
+    return render_template(
+        "cliente_financeiro.html",
+        nuit=nuit,
+        facturas=facturas,
+        recibos=recibos,
+        resumo_facturas=resumo_facturas,
+        total_recebido=total_recebido,
+        total_pendente=total_pendente,
+        dados_cliente=dados_cliente
+    )
+
+@app.route('/clientes', methods=['GET', 'POST'])
+def clientes():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if not tem_permissao("financeiro"):
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '').strip()
+        nuit = request.form.get('nuit', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        if not nome:
+            conn.close()
+            return "Erro: informe o nome do cliente."
+
+        if nuit:
+            cursor.execute("""
+            SELECT id
+            FROM clientes
+            WHERE nuit=%s
+            """, (nuit,))
+
+            cliente_existente = cursor.fetchone()
+
+            if cliente_existente:
+                conn.close()
+                return "⚠️ Já existe um cliente com este NUIT."
+
+        cursor.execute("""
+        INSERT INTO clientes (
+            nome,
+            nuit,
+            endereco,
+            data_criacao
+        )
+        VALUES (%s, %s, %s, %s)
+        """, (
+            nome,
+            nuit,
+            endereco,
+            data_criacao
+        ))
+
+        conn.commit()
+
+    cursor.execute("""
+    SELECT
+        c.id,
+        c.nome,
+        c.nuit,
+        c.endereco,
+        c.data_criacao,
+        COUNT(f.id) AS total_facturas,
+        COALESCE(SUM(f.total), 0) AS total_facturado,
+        MAX(f.data_factura) AS ultima_factura
+    FROM clientes c
+    LEFT JOIN facturas f
+        ON c.nuit = f.nuit
+    GROUP BY
+        c.id,
+        c.nome,
+        c.nuit,
+        c.endereco,
+        c.data_criacao
+    ORDER BY c.nome
+    """)
+
+    clientes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "clientes.html",
+        clientes=clientes
+    )
+@app.route('/editar-cliente/<int:id>', methods=['GET', 'POST'])
+def editar_cliente(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if not tem_permissao("financeiro"):
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '').strip()
+        nuit = request.form.get('nuit', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+
+        cursor.execute("""
+        UPDATE clientes
+        SET
+            nome=%s,
+            nuit=%s,
+            endereco=%s
+        WHERE id=%s
+        """, (
+            nome,
+            nuit,
+            endereco,
+            id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/clientes')
+
+    cursor.execute("""
+    SELECT *
+    FROM clientes
+    WHERE id=%s
+    """, (id,))
+
+    cliente = cursor.fetchone()
+
+    conn.close()
+
+    return render_template(
+        "editar_cliente.html",
+        cliente=cliente
+    )
+
+@app.route('/apagar-cliente/<int:id>')
+def apagar_cliente(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if not tem_permissao("financeiro"):
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT nuit
+    FROM clientes
+    WHERE id=%s
+    """, (id,))
+
+    cliente = cursor.fetchone()
+
+    if not cliente:
+        conn.close()
+        return "Cliente não encontrado."
+
+    nuit = cliente[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM facturas
+    WHERE nuit=%s
+    """, (nuit,))
+
+    total_facturas = cursor.fetchone()[0]
+
+    if total_facturas > 0:
+        conn.close()
+        return "Não é possível eliminar este cliente porque possui facturas registadas."
+
+    cursor.execute("""
+    DELETE FROM clientes
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/clientes')
+
+@app.route('/empresas-manutencao', methods=['GET', 'POST'])
+def empresas_manutencao():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '').strip()
+        localizacao = request.form.get('localizacao', '').strip()
+        contacto = request.form.get('contacto', '').strip()
+        responsavel = request.form.get('responsavel', '').strip()
+        tipo_equipamento = request.form.get('tipo_equipamento', '').strip()
+        quantidade_equipamentos = int(request.form.get('quantidade_equipamentos') or 0)
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        cursor.execute("""
+        INSERT INTO empresas_manutencao (
+            nome,
+            localizacao,
+            contacto,
+            responsavel,
+            tipo_equipamento,
+            quantidade_equipamentos,
+            estado,
+            data_criacao
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            nome,
+            localizacao,
+            contacto,
+            responsavel,
+            tipo_equipamento,
+            quantidade_equipamentos,
+            "Ativo",
+            data_criacao
+        ))
+
+        conn.commit()
+
+    cursor.execute("""
+    SELECT *
+    FROM empresas_manutencao
+    ORDER BY id DESC
+    """)
+
+    empresas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "empresas_manutencao.html",
+        empresas=empresas
+    )
+
+@app.route('/nova-manutencao', methods=['GET', 'POST'])
+def nova_manutencao():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        empresa_id = request.form.get('empresa_id')
+        data_manutencao = request.form.get('data_manutencao', '')
+        tipo_manutencao = request.form.get('tipo_manutencao', '')
+        tecnico = request.form.get('tecnico', '')
+        descricao_servico = request.form.get('descricao_servico', '')
+        proxima_manutencao = request.form.get('proxima_manutencao', '')
+        observacao = request.form.get('observacao', '')
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        cursor.execute("""
+        INSERT INTO manutencoes (
+            empresa_id,
+            data_manutencao,
+            tipo_manutencao,
+            tecnico,
+            descricao_servico,
+            estado,
+            proxima_manutencao,
+            observacao,
+            data_criacao
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            empresa_id,
+            data_manutencao,
+            tipo_manutencao,
+            tecnico,
+            descricao_servico,
+            "Concluída",
+            proxima_manutencao,
+            observacao,
+            data_criacao
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/empresas-manutencao')
+
+    cursor.execute("""
+    SELECT id, nome
+    FROM empresas_manutencao
+    WHERE estado='Ativo'
+    ORDER BY nome
+    """)
+
+    empresas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "nova_manutencao.html",
+        empresas=empresas
+    )
+
+@app.route('/nova-avaria', methods=['GET', 'POST'])
+def nova_avaria():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        empresa_id = request.form.get('empresa_id')
+        data_avaria = request.form.get('data_avaria', '')
+        equipamento = request.form.get('equipamento', '')
+        descricao = request.form.get('descricao', '')
+        prioridade = request.form.get('prioridade', '')
+        tecnico = request.form.get('tecnico', '')
+        data_criacao = datetime.now().strftime("%d/%m/%Y")
+
+        cursor.execute("""
+        INSERT INTO avarias (
+            empresa_id,
+            data_avaria,
+            equipamento,
+            descricao,
+            prioridade,
+            estado,
+            tecnico,
+            data_criacao
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            empresa_id,
+            data_avaria,
+            equipamento,
+            descricao,
+            prioridade,
+            "Aberta",
+            tecnico,
+            data_criacao
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect('/empresas-manutencao')
+
+    cursor.execute("""
+    SELECT id, nome
+    FROM empresas_manutencao
+    WHERE estado='Ativo'
+    ORDER BY nome
+    """)
+
+    empresas = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "nova_avaria.html",
+        empresas=empresas
+    )
+@app.route('/empresa-manutencao/<int:id>')
+def empresa_manutencao(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM empresas_manutencao
+    WHERE id=%s
+    """, (id,))
+
+    empresa = cursor.fetchone()
+
+    if not empresa:
+        conn.close()
+        return "Empresa não encontrada."
+
+    cursor.execute("""
+    SELECT *
+    FROM manutencoes
+    WHERE empresa_id=%s
+    ORDER BY id DESC
+    """, (id,))
+
+    manutencoes = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT *
+    FROM avarias
+    WHERE empresa_id=%s
+    ORDER BY id DESC
+    """, (id,))
+
+    avarias = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM manutencoes
+    WHERE empresa_id=%s
+    """, (id,))
+
+    total_manutencoes = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM avarias
+    WHERE empresa_id=%s AND estado!='Resolvida'
+    """, (id,))
+
+    avarias_abertas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM avarias
+    WHERE empresa_id=%s AND estado='Resolvida'
+    """, (id,))
+
+    avarias_resolvidas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT proxima_manutencao
+    FROM manutencoes
+    WHERE empresa_id=%s
+    ORDER BY id DESC
+    LIMIT 1
+    """, (id,))
+
+    prox = cursor.fetchone()
+    proxima_manutencao = prox[0] if prox else ""
+    cursor.execute("""
+    SELECT *
+    FROM equipamentos_manutencao
+    WHERE empresa_id=%s
+    ORDER BY id DESC
+    """, (id,))
+
+    equipamentos = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "empresa_manutencao.html",
+        empresa=empresa,
+        manutencoes=manutencoes,
+        avarias=avarias,
+        total_manutencoes=total_manutencoes,
+        avarias_abertas=avarias_abertas,
+        avarias_resolvidas=avarias_resolvidas,
+        proxima_manutencao=proxima_manutencao,
+        equipamentos=equipamentos
+    )
+@app.route('/resolver-avaria/<int:id>', methods=['GET', 'POST'])
+def resolver_avaria(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM avarias
+    WHERE id=%s
+    """, (id,))
+
+    avaria = cursor.fetchone()
+
+    if not avaria:
+        conn.close()
+        return "Avaria não encontrada."
+
+    if request.method == 'POST':
+
+        tecnico = request.form.get('tecnico', '')
+        solucao = request.form.get('solucao', '')
+        data_resolucao = request.form.get('data_resolucao', '')
+
+        cursor.execute("""
+        UPDATE avarias
+        SET
+            tecnico=%s,
+            solucao=%s,
+            data_resolucao=%s,
+            estado='Resolvida'
+        WHERE id=%s
+        """, (
+            tecnico,
+            solucao,
+            data_resolucao,
+            id
+        ))
+
+        conn.commit()
+        empresa_id = avaria[1]
+        conn.close()
+
+        return redirect(f'/empresa-manutencao/{empresa_id}')
+
+    conn.close()
+
+    return render_template(
+        "resolver_avaria.html",
+        avaria=avaria
+    )
+
+
+@app.route('/dashboard-manutencao')
+def dashboard_manutencao():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM empresas_manutencao
+    WHERE estado='Ativo'
+    """)
+    empresas_ativas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM manutencoes
+    """)
+    total_manutencoes = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM avarias
+    WHERE estado!='Resolvida'
+    """)
+    avarias_abertas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM avarias
+    WHERE estado='Resolvida'
+    """)
+    avarias_resolvidas = cursor.fetchone()[0]
+
+    cursor.execute("""
+    SELECT
+        a.id,
+        e.nome,
+        a.equipamento,
+        a.descricao,
+        a.prioridade,
+        a.estado,
+        a.data_avaria
+    FROM avarias a
+    JOIN empresas_manutencao e
+        ON a.empresa_id = e.id
+    WHERE a.estado!='Resolvida'
+    ORDER BY a.id DESC
+    LIMIT 10
+    """)
+    avarias_pendentes = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT
+        m.id,
+        e.nome,
+        m.data_manutencao,
+        m.tipo_manutencao,
+        m.tecnico,
+        m.proxima_manutencao
+    FROM manutencoes m
+    JOIN empresas_manutencao e
+        ON m.empresa_id = e.id
+    ORDER BY m.id DESC
+    LIMIT 10
+    """)
+    ultimas_manutencoes = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "dashboard_manutencao.html",
+        empresas_ativas=empresas_ativas,
+        total_manutencoes=total_manutencoes,
+        avarias_abertas=avarias_abertas,
+        avarias_resolvidas=avarias_resolvidas,
+        avarias_pendentes=avarias_pendentes,
+        ultimas_manutencoes=ultimas_manutencoes
+    )
+
+@app.route('/pdf-manutencao/<int:id>')
+def pdf_manutencao(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        m.id,
+        m.data_manutencao,
+        m.tipo_manutencao,
+        m.tecnico,
+        m.descricao_servico,
+        m.estado,
+        m.proxima_manutencao,
+        m.observacao,
+        e.nome,
+        e.localizacao,
+        e.contacto,
+        e.responsavel,
+        e.tipo_equipamento
+    FROM manutencoes m
+    JOIN empresas_manutencao e
+        ON m.empresa_id = e.id
+    WHERE m.id=%s
+    """, (id,))
+
+    dados = cursor.fetchone()
+    conn.close()
+
+    if not dados:
+        return "Manutenção não encontrada."
+
+    os.makedirs("pdfs", exist_ok=True)
+
+    file_path = f"pdfs/manutencao_{id}.pdf"
+
+    pdf = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    azul = colors.HexColor("#0d47a1")
+    cinza = colors.HexColor("#eeeeee")
+    azul_claro = colors.HexColor("#e3f2fd")
+
+    logo_path = "static/logo/logo.png"
+
+    if os.path.exists(logo_path):
+        pdf.drawImage(
+            logo_path,
+            40,
+            height - 105,
+            width=120,
+            height=75,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawString(175, height - 50, "RELATÓRIO TÉCNICO DE MANUTENÇÃO")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(175, height - 70, "Transporte Vertical, LDA")
+    pdf.drawString(175, height - 85, "Av. Armando Tivane – Goto | Beira - Moçambique")
+    pdf.drawString(175, height - 100, "Cell: (+258) 878340748 / 847891715")
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawRightString(555, height - 55, f"Nº RT-{id:05d}/2026")
+    pdf.drawRightString(555, height - 75, f"Data: {datetime.now().strftime('%d/%m/%Y')}")
+
+    pdf.setStrokeColor(azul)
+    pdf.line(40, height - 125, 555, height - 125)
+
+    y = height - 215
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y, 515, 85, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y + 68, "DADOS DO CLIENTE / EQUIPAMENTO")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(55, y + 50, f"Empresa: {dados[8] or ''}")
+    pdf.drawString(55, y + 35, f"Localização: {dados[9] or ''}")
+    pdf.drawString(55, y + 20, f"Contacto: {dados[10] or ''}")
+
+    pdf.drawString(310, y + 50, f"Responsável: {dados[11] or ''}")
+    pdf.drawString(310, y + 35, f"Equipamento: {dados[12] or ''}")
+    pdf.drawString(310, y + 20, f"Estado: {dados[5] or ''}")
+
+    y2 = y - 120
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y2, 515, 100, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y2 + 82, "DADOS DA MANUTENÇÃO")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(55, y2 + 62, f"Data da Manutenção: {dados[1] or ''}")
+    pdf.drawString(55, y2 + 47, f"Tipo: {dados[2] or ''}")
+    pdf.drawString(55, y2 + 32, f"Técnico: {dados[3] or ''}")
+    pdf.drawString(310, y2 + 62, f"Próxima Manutenção: {dados[6] or ''}")
+
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawString(55, y2 + 12, "Serviço Executado:")
+
+    pdf.setFont("Helvetica", 8)
+    servico = str(dados[4] or "")
+    linhas = [servico[i:i+85] for i in range(0, len(servico), 85)]
+
+    texto_y = y2 - 8
+
+    for linha in linhas[:5]:
+        pdf.drawString(55, texto_y, linha)
+        texto_y -= 12
+
+    obs_y = texto_y - 25
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, obs_y, 515, 65, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, obs_y + 48, "OBSERVAÇÕES")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    observacao = str(dados[7] or "")
+    obs_linhas = [observacao[i:i+95] for i in range(0, len(observacao), 95)]
+
+    obs_text_y = obs_y + 30
+
+    for linha in obs_linhas[:3]:
+        pdf.drawString(55, obs_text_y, linha)
+        obs_text_y -= 12
+
+    assinatura_y = 90
+
+    pdf.setStrokeColor(colors.black)
+    pdf.line(55, assinatura_y, 225, assinatura_y)
+    pdf.line(330, assinatura_y, 520, assinatura_y)
+
+    pdf.setFont("Helvetica", 8)
+    pdf.drawCentredString(140, assinatura_y - 15, "Assinatura do Técnico")
+    pdf.drawCentredString(425, assinatura_y - 15, "Assinatura do Cliente")
+
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawString(40, 30, "Documento gerado automaticamente pelo sistema.")
+
+    pdf.save()
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"RELATORIO_MANUTENCAO_{id}.pdf"
+    )
+@app.route('/editar-manutencao/<int:id>', methods=['GET', 'POST'])
+def editar_manutencao(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM manutencoes
+    WHERE id=%s
+    """, (id,))
+
+    manutencao = cursor.fetchone()
+
+    if not manutencao:
+        conn.close()
+        return "Manutenção não encontrada."
+
+    if request.method == 'POST':
+
+        data_manutencao = request.form.get('data_manutencao')
+        tipo_manutencao = request.form.get('tipo_manutencao')
+        tecnico = request.form.get('tecnico')
+        descricao_servico = request.form.get('descricao_servico')
+        estado = request.form.get('estado')
+        proxima_manutencao = request.form.get('proxima_manutencao')
+        observacao = request.form.get('observacao')
+
+        cursor.execute("""
+        UPDATE manutencoes
+        SET
+            data_manutencao=%s,
+            tipo_manutencao=%s,
+            tecnico=%s,
+            descricao_servico=%s,
+            estado=%s,
+            proxima_manutencao=%s,
+            observacao=%s
+        WHERE id=%s
+        """, (
+            data_manutencao,
+            tipo_manutencao,
+            tecnico,
+            descricao_servico,
+            estado,
+            proxima_manutencao,
+            observacao,
+            id
+        ))
+
+        conn.commit()
+
+        empresa_id = manutencao[1]
+
+        conn.close()
+
+        return redirect(f'/empresa-manutencao/{empresa_id}')
+
+    conn.close()
+
+    return render_template(
+        'editar_manutencao.html',
+        manutencao=manutencao
+    )
+@app.route('/apagar-manutencao/<int:id>')
+def apagar_manutencao(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT empresa_id
+    FROM manutencoes
+    WHERE id=%s
+    """, (id,))
+
+    manutencao = cursor.fetchone()
+
+    if not manutencao:
+        conn.close()
+        return "Manutenção não encontrada."
+
+    empresa_id = manutencao[0]
+
+    cursor.execute("""
+    DELETE FROM manutencoes
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(f'/empresa-manutencao/{empresa_id}')
+
+@app.route('/pdf-avaria/<int:id>')
+def pdf_avaria(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        a.id,
+        a.data_avaria,
+        a.equipamento,
+        a.descricao,
+        a.prioridade,
+        a.estado,
+        a.tecnico,
+        a.solucao,
+        a.data_resolucao,
+        e.nome,
+        e.localizacao,
+        e.contacto,
+        e.responsavel,
+        e.tipo_equipamento
+    FROM avarias a
+    JOIN empresas_manutencao e
+        ON a.empresa_id = e.id
+    WHERE a.id=%s
+    """, (id,))
+
+    dados = cursor.fetchone()
+    conn.close()
+
+    if not dados:
+        return "Avaria não encontrada."
+
+    os.makedirs("pdfs", exist_ok=True)
+
+    file_path = f"pdfs/avaria_{id}.pdf"
+
+    pdf = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    azul = colors.HexColor("#0d47a1")
+    vermelho = colors.HexColor("#d32f2f")
+    cinza = colors.HexColor("#eeeeee")
+    azul_claro = colors.HexColor("#e3f2fd")
+
+    logo_path = "static/logo/logo.png"
+
+    if os.path.exists(logo_path):
+        pdf.drawImage(
+            logo_path,
+            40,
+            height - 105,
+            width=120,
+            height=75,
+            preserveAspectRatio=True,
+            mask='auto'
+        )
+
+    pdf.setFillColor(vermelho)
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawString(175, height - 50, "RELATÓRIO TÉCNICO DE AVARIA")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 9)
+    pdf.drawString(175, height - 70, "Transporte Vertical MOZ")
+    pdf.drawString(175, height - 85, "Av. Armando Tivane – Goto | Beira - Moçambique")
+    pdf.drawString(175, height - 100, "Cell: (+258) 878340748 / 847891715")
+
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawRightString(555, height - 55, f"Nº RA-{id:05d}/2026")
+    pdf.drawRightString(555, height - 75, f"Data: {datetime.now().strftime('%d/%m/%Y')}")
+
+    pdf.setStrokeColor(vermelho)
+    pdf.line(40, height - 125, 555, height - 125)
+
+    y = height - 215
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y, 515, 85, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y + 68, "DADOS DO CLIENTE / EQUIPAMENTO")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(55, y + 50, f"Empresa: {dados[9] or ''}")
+    pdf.drawString(55, y + 35, f"Localização: {dados[10] or ''}")
+    pdf.drawString(55, y + 20, f"Contacto: {dados[11] or ''}")
+
+    pdf.drawString(310, y + 50, f"Responsável: {dados[12] or ''}")
+    pdf.drawString(310, y + 35, f"Tipo Equipamento: {dados[13] or ''}")
+    pdf.drawString(310, y + 20, f"Equipamento: {dados[2] or ''}")
+
+    y2 = y - 125
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, y2, 515, 115, 6, fill=0)
+
+    pdf.setFillColor(vermelho)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, y2 + 97, "DADOS DA AVARIA")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    pdf.drawString(55, y2 + 78, f"Data da Avaria: {dados[1] or ''}")
+    pdf.drawString(55, y2 + 63, f"Prioridade: {dados[4] or ''}")
+    pdf.drawString(55, y2 + 48, f"Estado: {dados[5] or ''}")
+
+    pdf.drawString(310, y2 + 78, f"Técnico: {dados[6] or ''}")
+    pdf.drawString(310, y2 + 63, f"Data de Resolução: {dados[8] or ''}")
+
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawString(55, y2 + 25, "Descrição da Avaria:")
+
+    pdf.setFont("Helvetica", 8)
+    descricao = str(dados[3] or "")
+    linhas = [descricao[i:i+95] for i in range(0, len(descricao), 95)]
+
+    texto_y = y2 + 10
+    for linha in linhas[:3]:
+        pdf.drawString(55, texto_y, linha)
+        texto_y -= 12
+
+    solucao_y = y2 - 95
+
+    pdf.setStrokeColor(cinza)
+    pdf.roundRect(40, solucao_y, 515, 85, 6, fill=0)
+
+    pdf.setFillColor(azul)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(55, solucao_y + 68, "SOLUÇÃO APLICADA")
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica", 8)
+
+    solucao = str(dados[7] or "Avaria ainda não resolvida.")
+    sol_linhas = [solucao[i:i+95] for i in range(0, len(solucao), 95)]
+
+    sol_text_y = solucao_y + 50
+    for linha in sol_linhas[:4]:
+        pdf.drawString(55, sol_text_y, linha)
+        sol_text_y -= 12
+
+    assinatura_y = 90
+
+    pdf.setStrokeColor(colors.black)
+    pdf.line(55, assinatura_y, 225, assinatura_y)
+    pdf.line(330, assinatura_y, 520, assinatura_y)
+
+    pdf.setFont("Helvetica", 8)
+    pdf.drawCentredString(140, assinatura_y - 15, "Assinatura do Técnico")
+    pdf.drawCentredString(425, assinatura_y - 15, "Assinatura do Cliente")
+
+    pdf.setFont("Helvetica", 7)
+    pdf.setFillColor(colors.grey)
+    pdf.drawString(40, 30, "Documento gerado automaticamente pelo sistema.")
+
+    pdf.save()
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"RELATORIO_AVARIA_{id}.pdf"
+    )
+@app.route('/editar-avaria/<int:id>', methods=['GET', 'POST'])
+def editar_avaria(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT *
+    FROM avarias
+    WHERE id=%s
+    """, (id,))
+
+    avaria = cursor.fetchone()
+
+    if not avaria:
+        conn.close()
+        return "Avaria não encontrada."
+
+    if request.method == 'POST':
+
+        equipamento = request.form.get('equipamento')
+        descricao = request.form.get('descricao')
+        prioridade = request.form.get('prioridade')
+        estado = request.form.get('estado')
+        tecnico = request.form.get('tecnico')
+
+        cursor.execute("""
+        UPDATE avarias
+        SET
+            equipamento=%s,
+            descricao=%s,
+            prioridade=%s,
+            estado=%s,
+            tecnico=%s
+        WHERE id=%s
+        """, (
+            equipamento,
+            descricao,
+            prioridade,
+            estado,
+            tecnico,
+            id
+        ))
+
+        conn.commit()
+
+        empresa_id = avaria[1]
+
+        conn.close()
+
+        return redirect(f'/empresa-manutencao/{empresa_id}')
+
+    conn.close()
+
+    return render_template(
+        'editar_avaria.html',
+        avaria=avaria
+    )
+
+@app.route('/apagar-avaria/<int:id>')
+def apagar_avaria(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT empresa_id
+    FROM avarias
+    WHERE id=%s
+    """, (id,))
+
+    avaria = cursor.fetchone()
+
+    if not avaria:
+        conn.close()
+        return "Avaria não encontrada."
+
+    empresa_id = avaria[0]
+
+    cursor.execute("""
+    DELETE FROM avarias
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(f'/empresa-manutencao/{empresa_id}')
+
+@app.route('/novo-equipamento/<int:empresa_id>', methods=['GET', 'POST'])
+def novo_equipamento(empresa_id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome', '')
+        marca = request.form.get('marca', '')
+        modelo = request.form.get('modelo', '')
+        numero_serie = request.form.get('numero_serie', '')
+        localizacao = request.form.get('localizacao', '')
+
+        cursor.execute("""
+        INSERT INTO equipamentos_manutencao (
+            empresa_id,
+            nome,
+            marca,
+            modelo,
+            numero_serie,
+            localizacao,
+            data_criacao
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            empresa_id,
+            nome,
+            marca,
+            modelo,
+            numero_serie,
+            localizacao,
+            datetime.now().strftime("%d/%m/%Y")
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect(f'/empresa-manutencao/{empresa_id}')
+
+    cursor.execute("""
+    SELECT nome
+    FROM empresas_manutencao
+    WHERE id=%s
+    """, (empresa_id,))
+
+    empresa = cursor.fetchone()
+
+    conn.close()
+
+    return render_template(
+        'novo_equipamento.html',
+        empresa=empresa,
+        empresa_id=empresa_id
+    )
+    
 @app.route('/logout')
 def logout():
 

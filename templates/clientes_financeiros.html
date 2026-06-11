@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>👥 Clientes Financeiros</h1>
+<p>Clientes agrupados automaticamente pelo NUIT.</p>
+
+<div class="card">
+
+<table>
+    <tr>
+        <th>Cliente</th>
+        <th>NUIT</th>
+        <th>Total de Facturas</th>
+        <th>Total Facturado</th>
+        <th>Ações</th>
+    </tr>
+
+    {% for c in clientes %}
+    <tr>
+        <td><strong>{{ c[0] }}</strong></td>
+        <td>{{ c[1] }}</td>
+        <td>{{ c[2] }}</td>
+        <td><strong>{{ "%.2f"|format(c[3] or 0) }} MT</strong></td>
+        <td>
+            <a href="/cliente-financeiro/{{ c[1] }}" class="btn">
+                👁️ Ver Cliente
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="5" style="text-align:center; padding:30px;">
+            Nenhum cliente financeiro encontrado.
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

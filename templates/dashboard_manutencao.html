@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🔧 Dashboard de Manutenção</h1>
+<p>Resumo geral das atividades de manutenção.</p>
+
+<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:25px;">
+
+    <div class="card">
+        <span>🏢 Empresas Ativas</span>
+        <h2>{{ empresas_ativas }}</h2>
+    </div>
+
+    <div class="card">
+        <span>🛠️ Total de Manutenções</span>
+        <h2>{{ total_manutencoes }}</h2>
+    </div>
+
+    <div class="card">
+        <span>⚠️ Avarias Abertas</span>
+        <h2 style="color:#d32f2f;">{{ avarias_abertas }}</h2>
+    </div>
+
+    <div class="card">
+        <span>✅ Avarias Resolvidas</span>
+        <h2 style="color:#1b5e20;">{{ avarias_resolvidas }}</h2>
+    </div>
+
+</section>
+
+<div style="margin-bottom:20px;">
+    <a href="/empresas-manutencao" class="btn">
+        🏢 Empresas
+    </a>
+
+    <a href="/nova-manutencao" class="btn">
+        🛠️ Nova Manutenção
+    </a>
+
+    <a href="/nova-avaria" class="btn red">
+        ⚠️ Nova Avaria
+    </a>
+</div>
+
+<div class="card">
+
+    <h3>⚠️ Avarias Pendentes</h3>
+
+    <table>
+        <tr>
+            <th>Empresa</th>
+            <th>Equipamento</th>
+            <th>Descrição</th>
+            <th>Prioridade</th>
+            <th>Estado</th>
+            <th>Data</th>
+        </tr>
+
+        {% for a in avarias_pendentes %}
+        <tr>
+            <td>{{ a[1] }}</td>
+            <td>{{ a[2] }}</td>
+            <td>{{ a[3] }}</td>
+            <td>{{ a[4] }}</td>
+            <td>{{ a[5] }}</td>
+            <td>{{ a[6] }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" style="text-align:center;padding:30px;">
+                Nenhuma avaria pendente.
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+<br>
+
+<div class="card">
+
+    <h3>🛠️ Últimas Manutenções</h3>
+
+    <table>
+        <tr>
+            <th>Empresa</th>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Técnico</th>
+            <th>Próxima Manutenção</th>
+        </tr>
+
+        {% for m in ultimas_manutencoes %}
+        <tr>
+            <td>{{ m[1] }}</td>
+            <td>{{ m[2] }}</td>
+            <td>{{ m[3] }}</td>
+            <td>{{ m[4] }}</td>
+            <td>{{ m[5] }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" style="text-align:center;padding:30px;">
+                Nenhuma manutenção registada.
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+{% endblock %}
