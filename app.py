@@ -1709,9 +1709,8 @@ def apagar_funcionario(id):
     cursor = conn.cursor()
 
     cursor.execute("""
-    UPDATE funcionarios
-    SET estado='Inativo'
-    WHERE id=%s
+        DELETE FROM funcionarios
+        WHERE id = %s
     """, (id,))
 
     conn.commit()
@@ -5477,6 +5476,8 @@ def sair_manutencao():
     session.pop("manutencao_autorizado", None)
 
     return redirect('/')   
+
+    
 @app.route('/logout')
 def logout():
 
