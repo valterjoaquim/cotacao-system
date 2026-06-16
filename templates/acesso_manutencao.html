@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>🔐 Acesso à Manutenção</h1>
+<p>Digite a senha para entrar no módulo de manutenção.</p>
+
+<div class="card">
+    {% if erro %}
+<div style="
+    background:#ffebee;
+    color:#c62828;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:15px;
+">
+    {{ erro }}
+</div>
+{% endif %}
+
+<form method="POST">
+
+    <label>Senha de Manutenção</label>
+    <input type="password" name="senha_manutencao" required>
+
+    <br><br>
+
+    <button type="submit" class="btn">
+        Entrar
+    </button>
+
+    <a href="/" class="btn light">
+        Voltar
+    </a>
+    
+
+</form>
+
+</div>
+
+{% endblock %}

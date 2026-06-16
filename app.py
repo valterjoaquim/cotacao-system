@@ -11,6 +11,8 @@ app.secret_key = "cotacao123"
 
 SENHA_RH = "rh123"
 
+SENHA_MANUTENCAO = "1234"
+
 
 def conectar():
     """
@@ -504,6 +506,7 @@ def login():
             session['user'] = user[1]
             session['tipo'] = user[3]
             session.pop("rh_autorizado", None)
+            session['tipo_usuario'] = user[3]
 
             return redirect('/')
 
@@ -4428,6 +4431,8 @@ def empresas_manutencao():
 
     if "user" not in session:
         return redirect('/login')
+    if not session.get("manutencao_autorizado"):
+        return redirect('/acesso-manutencao')
 
     conn = conectar()
     cursor = conn.cursor()
@@ -4487,6 +4492,8 @@ def nova_manutencao():
 
     if "user" not in session:
         return redirect('/login')
+    if not session.get("manutencao_autorizado"):
+        return redirect('/acesso-manutencao')
 
     conn = conectar()
     cursor = conn.cursor()
@@ -4553,6 +4560,8 @@ def nova_avaria():
 
     if "user" not in session:
         return redirect('/login')
+    if not session.get("manutencao_autorizado"):
+        return redirect('/acesso-manutencao')
 
     conn = conectar()
     cursor = conn.cursor()
@@ -4615,6 +4624,8 @@ def empresa_manutencao(id):
 
     if "user" not in session:
         return redirect('/login')
+    if not session.get("manutencao_autorizado"):
+        return redirect('/acesso-manutencao')
 
     conn = conectar()
     cursor = conn.cursor()
@@ -4766,7 +4777,8 @@ def dashboard_manutencao():
 
     if "user" not in session:
         return redirect('/login')
-
+    if not session.get("manutencao_autorizado"):
+        return redirect('/acesso-manutencao')
     conn = conectar()
     cursor = conn.cursor()
 
@@ -4848,6 +4860,7 @@ def pdf_manutencao(id):
 
     if "user" not in session:
         return redirect('/login')
+    
 
     conn = conectar()
     cursor = conn.cursor()
@@ -5437,6 +5450,33 @@ def novo_equipamento(empresa_id):
         empresa_id=empresa_id
     )
     
+@app.route('/acesso-manutencao', methods=['GET', 'POST'])
+def acesso_manutencao():
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+
+        senha = request.form.get('senha_manutencao', '')
+
+        if senha == SENHA_MANUTENCAO:
+            session['manutencao_autorizado'] = True
+            return redirect('/dashboard-manutencao')
+
+        return render_template(
+    "acesso_manutencao.html",
+    erro="Senha de manutenção inválida."
+)
+
+    return render_template("acesso_manutencao.html")
+
+@app.route('/sair-manutencao')
+def sair_manutencao():
+
+    session.pop("manutencao_autorizado", None)
+
+    return redirect('/')   
 @app.route('/logout')
 def logout():
 

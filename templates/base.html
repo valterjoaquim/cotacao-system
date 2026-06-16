@@ -312,9 +312,7 @@
 
         <div class="menu-title">Principal</div>
         <a href="/">📊 Painel</a>
-             <a href="/despesas">
-            💸 Despesas Básicas
-         </a>
+        <a href="/despesas">💸 Despesas Básicas</a>
 
         {% if session.get("tipo") in ["admin", "comercial"] %}
             <div class="menu-title">Cotações</div>
@@ -348,18 +346,20 @@
             <a href="/facturas">📄 Facturas</a>
             <a href="/recibos">🧾 Recibos</a>
             <a href="/extrato">📊 Extrato</a>
-            <a href="/clientes-financeiros">
-            👥 Clientes Financeiros
-            <a href="/clientes">
-                👥 Clientes
-            </a>
-            <a href="/dashboard-manutencao">
-    🔧 Dashboard Manutenção
-            </a>
-            <a href="/dashboard-manutencao">🔧 Dashboard</a>
-                <a href="/empresas-manutencao">🏢 Empresas</a>
-                <a href="/nova-manutencao">🛠️ Manutenção</a>
-                <a href="/nova-avaria">⚠️ Avaria</a>
+            <a href="/clientes-financeiros">👥 Clientes Financeiros</a>
+            <a href="/clientes">👥 Clientes</a>
+        {% endif %}
+
+        <div class="menu-title">Manutenção</div>
+        <a href="/acesso-manutencao">🔧 Manutenção</a>
+
+        {% if session.get("manutencao_autorizado") %}
+            <a href="/dashboard-manutencao">📊 Dashboard Manutenção</a>
+            <a href="/empresas-manutencao">🏢 Empresas</a>
+            <a href="/nova-manutencao">🛠️ Nova Manutenção</a>
+            <a href="/nova-avaria">⚠️ Nova Avaria</a>
+            <a href="/sair-manutencao">
+                🔒 Bloquear Manutenção
             </a>
         {% endif %}
 
