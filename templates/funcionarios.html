@@ -213,7 +213,7 @@
                 {% for f in funcionarios %}
 
                 <tr>
-                    <td>#{{ f[0] }}</td>
+                    <td>#{{ loop.index }}</td>
 
                     <td>
                         {% if f[6] == "Funcionario" %}
