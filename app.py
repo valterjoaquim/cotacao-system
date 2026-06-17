@@ -1632,10 +1632,13 @@ def editar_funcionario(id):
     conn = conectar()
     cursor = conn.cursor()
 
+    # =========================
+    # POST - ATUALIZAR FUNCIONÁRIO
+    # =========================
     if request.method == 'POST':
 
         nome = request.form.get('nome', '')
-        tipo = request.form.get('tipo', 'Funcionário')
+        tipo = request.form.get('tipo', 'Funcionario')  # ✔ corrigido
         cargo = request.form.get('cargo', '')
         telefone = request.form.get('telefone', '')
         bi = request.form.get('bi', '')
@@ -1644,24 +1647,25 @@ def editar_funcionario(id):
         endereco = request.form.get('endereco', '')
         estado = request.form.get('estado', 'Ativo')
 
-        if tipo == "Estagiário":
+        # 💰 regra correta de salário
+        if tipo == "Estagiario":
             salario_hora = 0
         else:
             salario_hora = float(request.form.get('salario_hora') or 0)
 
         cursor.execute("""
-        UPDATE funcionarios
-        SET nome=%s,
-            tipo=%s,
-            cargo=%s,
-            salario_hora=%s,
-            telefone=%s,
-            bi=%s,
-            nuit=%s,
-            email=%s,
-            endereco=%s,
-            estado=%s
-        WHERE id=%s
+            UPDATE funcionarios
+            SET nome=%s,
+                tipo=%s,
+                cargo=%s,
+                salario_hora=%s,
+                telefone=%s,
+                bi=%s,
+                nuit=%s,
+                email=%s,
+                endereco=%s,
+                estado=%s
+            WHERE id=%s
         """, (
             nome,
             tipo,
@@ -1681,10 +1685,15 @@ def editar_funcionario(id):
 
         return redirect('/funcionarios')
 
+    # =========================
+    # GET - CARREGAR DADOS
+    # =========================
     cursor.execute("""
-    SELECT *
-    FROM funcionarios
-    WHERE id=%s
+        SELECT id, nome, cargo, salario_hora,
+               telefone, estado, tipo,
+               bi, nuit, email, endereco
+        FROM funcionarios
+        WHERE id=%s
     """, (id,))
 
     funcionario = cursor.fetchone()
@@ -1694,7 +1703,6 @@ def editar_funcionario(id):
         return "Funcionário não encontrado"
 
     return render_template("editar_funcionario.html", f=funcionario)
-
 
 @app.route('/apagar-funcionario/<int:id>')
 def apagar_funcionario(id):

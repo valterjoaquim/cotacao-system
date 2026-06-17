@@ -30,7 +30,7 @@
     {% for f in folhas %}
     <tr style="border-bottom:1px solid #eee;">
 
-        <td>#{{ f[0] }}</td>
+        <td>#{{ loop.index }}</td>
         <td><strong>{{ f[1] }}</strong></td>
         <td>{{ f[2] }}</td>
         <td>{{ f[3] }}/{{ f[4] }}</td>

@@ -74,8 +74,8 @@
         <div class="form-group">
             <label>Tipo</label>
             <select name="tipo" id="tipo" onchange="controlarSalario()" required>
-                <option value="Funcionário" {% if f[6] == "Funcionário" %}selected{% endif %}>Funcionário</option>
-                <option value="Estagiário" {% if f[6] == "Estagiário" %}selected{% endif %}>Estagiário</option>
+               <option value="Funcionario" {% if f[6] == "Funcionario" %}selected{% endif %}>Funcionário</option>
+                <option value="Estagiario" {% if f[6] == "Estagiario" %}selected{% endif %}>Estagiário</option>
             </select>
         </div>
 
@@ -154,7 +154,7 @@ function controlarSalario() {
     const tipo = document.getElementById("tipo").value;
     const campoSalario = document.getElementById("campo_salario");
 
-    if (tipo === "Estagiário") {
+    if (tipo === "Estagiario") {
         campoSalario.style.display = "none";
     } else {
         campoSalario.style.display = "block";
