@@ -5475,7 +5475,29 @@ def sair_manutencao():
 
     session.pop("manutencao_autorizado", None)
 
-    return redirect('/')   
+    return redirect('/')  
+
+@app.route('/apagar-folha/<int:id>')
+def apagar_folha(id):
+
+    if "user" not in session:
+        return redirect('/login')
+
+    if not rh_autorizado():
+        return redirect('/acesso-rh')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    DELETE FROM folhas_salariais
+    WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/folhas') 
 
     
 @app.route('/logout')

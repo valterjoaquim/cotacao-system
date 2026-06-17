@@ -29,31 +29,51 @@
 
     {% for f in folhas %}
     <tr style="border-bottom:1px solid #eee;">
+
         <td>#{{ f[0] }}</td>
         <td><strong>{{ f[1] }}</strong></td>
         <td>{{ f[2] }}</td>
         <td>{{ f[3] }}/{{ f[4] }}</td>
+
         <td>{{ "%.2f"|format(f[5] or 0) }} MT</td>
+
         <td>{{ "%.2f"|format(f[6] or 0) }} MT</td>
+
         <td>{{ "%.2f"|format(f[7] or 0) }} MT</td>
+
         <td>
             <strong style="color:#d32f2f;">
                 {{ "%.2f"|format(f[8] or 0) }} MT
             </strong>
         </td>
+
         <td>{{ f[9] }}</td>
-        <td>
-            <a class="btn red" href="/recibo-folha/{{ f[0] }}">
+
+        <td style="white-space: nowrap;">
+
+            <a class="btn" href="/recibo-folha/{{ f[0] }}">
                 📄 Recibo PDF
             </a>
+
+            <a class="btn red"
+               href="/apagar-folha/{{ f[0] }}"
+               onclick="return confirm('Tem certeza que deseja apagar esta folha salarial?');">
+                🗑️ Apagar
+            </a>
+
         </td>
+
     </tr>
+
     {% else %}
+
     <tr>
-        <td colspan="10" style="text-align:center; padding:30px; color:#777;">
+        <td colspan="10"
+            style="text-align:center; padding:30px; color:#777;">
             Nenhuma folha salarial criada ainda.
         </td>
     </tr>
+
     {% endfor %}
 
 </table>
