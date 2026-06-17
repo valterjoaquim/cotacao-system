@@ -378,18 +378,18 @@
 <div class="dashboard">
 
     <section class="welcome">
-        <h2>Bem-vindo, {{ session['user'] }} 👋</h2>
+        <h2>Bem-vindo, {{ session['user'] }} </h2>
         <p>
             Este é o painel principal do sistema. A partir daqui pode aceder rapidamente
             às cotações, facturação, estoque e recursos humanos.
         </p>
 
         <div class="welcome-actions">
-            <a href="/nova-cotacao" class="btn">➕ Nova Cotação</a>
-            <a href="/nova-factura" class="btn light">🧾 Nova Factura</a>
-            <a href="/facturas" class="btn light">📄 Facturas</a>
-            <a href="/produtos" class="btn light">📦 Estoque</a>
-            <a href="/backups" class="btn light">💾 Backups</a>
+            <a href="/nova-cotacao" class="btn"> Nova Cotação</a>
+            <a href="/nova-factura" class="btn light"> Nova Factura</a>
+            <a href="/facturas" class="btn light"> Facturas</a>
+            <a href="/produtos" class="btn light"> Estoque</a>
+            <a href="/backups" class="btn light"> Backups</a>
         </div>
     </section>
 
@@ -439,8 +439,8 @@
             </p>
 
             <div class="module-actions">
-                <a href="/nova-cotacao" class="btn full">➕ Nova Cotação</a>
-                <a href="/historico" class="btn light full">📄 Ver Histórico</a>
+                <a href="/nova-cotacao" class="btn full"> Nova Cotação</a>
+                <a href="/historico" class="btn light full"> Ver Histórico</a>
             </div>
         </div>
 
@@ -468,10 +468,10 @@
             </p>
 
             <div class="module-actions">
-                <a href="/nova-factura" class="btn finance">🧾 Nova Factura</a>
-                <a href="/facturas" class="btn light">📄 Facturas</a>
-                <a href="/recibos" class="btn light">🧾 Recibos</a>
-                <a href="/financeiro" class="btn light">📊 Financeiro</a>
+                <a href="/nova-factura" class="btn finance"> Nova Factura</a>
+                <a href="/facturas" class="btn light"> Facturas</a>
+                <a href="/recibos" class="btn light"> Recibos</a>
+                <a href="/financeiro" class="btn light"> Financeiro</a>
             </div>
         </div>
 
@@ -497,9 +497,9 @@
             </p>
 
             <div class="module-actions">
-                <a href="/produtos" class="btn red">📦 Produtos</a>
-                <a href="/historico-estoque" class="btn light">📋 Histórico</a>
-                <a href="/ferramentas-pendentes" class="btn light full">🧰 Ferramentas Pendentes</a>
+                <a href="/produtos" class="btn red"> Produtos</a>
+                <a href="/historico-estoque" class="btn light"> Histórico</a>
+                <a href="/ferramentas-pendentes" class="btn light full"> Ferramentas Pendentes</a>
             </div>
         </div>
 
@@ -526,11 +526,11 @@
             </p>
 
             <div class="module-actions">
-                <a href="/acesso-rh" class="btn full">🔐 Entrar no RH</a>
+                <a href="/acesso-rh" class="btn full"> Entrar no RH</a>
 
                 {% if session.get("rh_autorizado") %}
-                    <a href="/funcionarios" class="btn light">👥 Funcionários</a>
-                    <a href="/folhas" class="btn light">📋 Folhas</a>
+                    <a href="/funcionarios" class="btn light"> Funcionários</a>
+                    <a href="/folhas" class="btn light"> Folhas</a>
                 {% endif %}
             </div>
         </div>

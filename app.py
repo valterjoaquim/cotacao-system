@@ -406,7 +406,7 @@ ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'Dinheiro'
     ALTER TABLE despesas
     ADD COLUMN IF NOT EXISTS tipo_viagem TEXT
     """)
-    # =========================
+# =========================
 # EMPRESAS DE MANUTENÇÃO
 # =========================
     cursor.execute("""
@@ -440,7 +440,7 @@ ADD COLUMN IF NOT EXISTS forma_pagamento TEXT DEFAULT 'Dinheiro'
         data_criacao TEXT
     )
     """)
-    # =========================
+# =========================
 # AVARIAS
 # =========================
     cursor.execute("""
@@ -539,7 +539,7 @@ def dashboard():
     LIMIT 5
     """)
     ultimas_cotacoes = cursor.fetchall()
-    # =========================
+# ======================
 # RESUMO FINANCEIRO
 # =========================
     atualizar_facturas_vencidas()
@@ -2067,7 +2067,7 @@ def recibo_folha(id):
     # =========================
     # DESENHAR DUAS VIAS NA MESMA PÁGINA
     # =========================
-    desenhar_via(height - 35, "VIA DA EMPRESA")
+    desenhar_via(height - 35, "Orginal")
 
     # Linha tracejada para corte/separação
     pdf.setStrokeColor(colors.grey)
@@ -2079,7 +2079,7 @@ def recibo_folha(id):
     pdf.setFillColor(colors.grey)
     pdf.drawCentredString(width / 2, (height / 2) + 5, "-------------------------------------------------------------------")
 
-    desenhar_via((height / 2) - 20, "VIA DO FUNCIONÁRIO")
+    desenhar_via((height / 2) - 20, "Copia")
 
     pdf.save()
 
@@ -2907,7 +2907,7 @@ def pdf_factura(id):
     pdf.drawString(160, height - 50, "FACTURA")
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(160, height - 75, "TRANSPORTES VERTICAL.LDA")
+    pdf.drawString(160, height - 75, "TRANSPORTES VERTICAL, LDA")
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
@@ -3298,7 +3298,7 @@ def pdf_recibo(id):
     pdf.drawString(160, height - 55, "RECIBO")
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(160, height - 78, "TRANSPORTES VERTICAL.LDA")
+    pdf.drawString(160, height - 78, "TRANSPORTES VERTICAL, LDA")
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
@@ -4010,7 +4010,7 @@ def pdf_viagem(id):
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
-    pdf.drawString(150, height - 70, "Transporte Vertical MOZ")
+    pdf.drawString(150, height - 70, "Transporte Vertical, LDA")
     pdf.drawString(150, height - 85, "Av. Armando Tivane – Goto | Beira - Moçambique")
     pdf.drawString(150, height - 100, "Cell: (+258) 878340748 / 847891715")
 
@@ -5192,7 +5192,7 @@ def pdf_avaria(id):
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica", 9)
-    pdf.drawString(175, height - 70, "Transporte Vertical MOZ")
+    pdf.drawString(175, height - 70, "Transporte Vertical, LDA")
     pdf.drawString(175, height - 85, "Av. Armando Tivane – Goto | Beira - Moçambique")
     pdf.drawString(175, height - 100, "Cell: (+258) 878340748 / 847891715")
 
