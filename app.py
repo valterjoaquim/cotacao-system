@@ -1722,15 +1722,20 @@ def apagar_funcionario(id):
 @app.route('/nova-folha', methods=['GET', 'POST'])
 def nova_folha():
 
+    # 🔐 Segurança: login
     if "user" not in session:
         return redirect('/login')
 
+    # 🔐 Segurança: permissão RH
     if not rh_autorizado():
         return redirect('/acesso-rh')
 
     conn = conectar()
     cursor = conn.cursor()
 
+    # =========================
+    # POST → CRIAR FOLHA
+    # =========================
     if request.method == 'POST':
 
         funcionario_id = request.form.get('funcionario_id')
@@ -1742,10 +1747,11 @@ def nova_folha():
         horas_extra_100 = float(request.form.get('horas_extra_100', 0))
         outros_descontos = float(request.form.get('outros_descontos', 0))
 
+        # 🔍 Buscar funcionário com validação
         cursor.execute("""
-        SELECT salario_hora
-        FROM funcionarios
-        WHERE id=%s
+            SELECT salario_hora, tipo, estado
+            FROM funcionarios
+            WHERE id = %s
         """, (funcionario_id,))
 
         funcionario = cursor.fetchone()
@@ -1754,8 +1760,14 @@ def nova_folha():
             conn.close()
             return "Funcionário não encontrado"
 
-        salario_hora = float(funcionario[0])
+        salario_hora, tipo, estado = funcionario
 
+        # 🚫 Só funcionários ativos
+        if tipo != "Funcionario" or estado != "Ativo":
+            conn.close()
+            return "Só funcionários ativos podem receber folha salarial"
+
+        # 💰 Cálculos
         valor_horas_normais = horas_normais * salario_hora
         valor_extra_50 = horas_extra_50 * salario_hora * 1.5
         valor_extra_100 = horas_extra_100 * salario_hora * 2
@@ -1763,21 +1775,23 @@ def nova_folha():
         total_bruto = valor_horas_normais + valor_extra_50 + valor_extra_100
         inss = total_bruto * 0.03
         total_liquido = total_bruto - inss - outros_descontos
+
         data_criacao = datetime.now().strftime("%d/%m/%Y")
 
+        # 🧾 Inserir folha
         cursor.execute("""
-        INSERT INTO folhas_salariais (
-            funcionario_id, mes, ano,
-            horas_normais, horas_extra_50, horas_extra_100,
-            valor_horas_normais, valor_extra_50, valor_extra_100,
-            inss, outros_descontos, total_bruto, total_liquido,
-            data_criacao
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO folhas_salariais (
+                funcionario_id, mes, ano,
+                horas_normais, horas_extra_50, horas_extra_100,
+                valor_horas_normais, valor_extra_50, valor_extra_100,
+                inss, outros_descontos, total_bruto, total_liquido,
+                data_criacao
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             funcionario_id,
             mes,
-            int(ano),
+            int(ano) if ano else datetime.now().year,
             horas_normais,
             horas_extra_50,
             horas_extra_100,
@@ -1796,12 +1810,15 @@ def nova_folha():
 
         return redirect('/folhas')
 
+    # =========================
+    # GET → LISTAR FUNCIONÁRIOS
+    # =========================
     cursor.execute("""
-    SELECT id, nome, cargo, salario_hora
-    FROM funcionarios
-    WHERE estado='Ativo'
-    AND COALESCE(tipo, 'Funcionário') = 'Funcionário'
-    ORDER BY nome ASC
+        SELECT id, nome, cargo, salario_hora
+        FROM funcionarios
+        WHERE estado = 'Ativo'
+        AND tipo = 'Funcionario'
+        ORDER BY nome ASC
     """)
 
     funcionarios = cursor.fetchall()
